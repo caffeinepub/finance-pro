@@ -16,8 +16,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Download } from "lucide-react";
+import { Download, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
 import { useAppStore } from "../store/appStore";
 import {
   loanRepayAmount,
@@ -29,21 +30,28 @@ import { labels } from "../store/labels";
 import { exportCustomers } from "../utils/excel";
 
 export default function RecordsPage() {
-  const { customers, emiPayments, lineCategories, language, currentUser } =
-    useAppStore();
+  const {
+    customers,
+    emiPayments,
+    lineCategories,
+    language,
+    currentUser,
+    deleteCustomer,
+  } = useAppStore();
   const t = labels[language];
   const [search, setSearch] = useState("");
   const [lineFilter, setLineFilter] = useState("all");
+  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [openDialogId, setOpenDialogId] = useState<string | null>(null);
 
   const isAgent = currentUser?.role === "agent";
+  const isAdmin = currentUser?.role === "admin";
   const assignedLines = currentUser?.assignedLines ?? [];
 
-  // Agents see only their assigned line categories
   const visibleLineCategories = isAgent
     ? lineCategories.filter((l) => assignedLines.includes(l.id))
     : lineCategories;
 
-  // Agents see only customers from their assigned lines
   const accessibleCustomers = isAgent
     ? customers.filter((c) => assignedLines.includes(c.lineCategoryId))
     : customers;
@@ -63,6 +71,21 @@ export default function RecordsPage() {
     emiPayments
       .filter((e) => e.customerId === id)
       .sort((a, b) => b.paymentDate.localeCompare(a.paymentDate));
+
+  const handleDelete = (id: string, name: string) => {
+    if (confirmDeleteId === id) {
+      deleteCustomer(id);
+      setConfirmDeleteId(null);
+      setOpenDialogId(null);
+      toast.success(
+        language === "ta"
+          ? `${name} நீக்கப்பட்டது`
+          : `${name} deleted successfully`,
+      );
+    } else {
+      setConfirmDeleteId(id);
+    }
+  };
 
   return (
     <div data-ocid="records.page" className="space-y-3">
@@ -168,7 +191,13 @@ export default function RecordsPage() {
                       </p>
                     </div>
                   </div>
-                  <Dialog>
+                  <Dialog
+                    open={openDialogId === c.id}
+                    onOpenChange={(open) => {
+                      setOpenDialogId(open ? c.id : null);
+                      if (!open) setConfirmDeleteId(null);
+                    }}
+                  >
                     <DialogTrigger asChild>
                       <Button
                         variant="outline"
@@ -243,6 +272,55 @@ export default function RecordsPage() {
                             )}
                           </div>
                         </div>
+
+                        {isAdmin && (
+                          <div className="pt-1 border-t">
+                            {confirmDeleteId === c.id ? (
+                              <div className="space-y-2">
+                                <p className="text-xs text-destructive font-medium">
+                                  {language === "ta"
+                                    ? "நிச்சயமாக நீக்கவா? அனைத்து தரவும் நீக்கப்படும்."
+                                    : "Are you sure? All data for this customer will be permanently deleted."}
+                                </p>
+                                <div className="flex gap-2">
+                                  <Button
+                                    variant="destructive"
+                                    size="sm"
+                                    className="flex-1 h-8 text-xs"
+                                    onClick={() => handleDelete(c.id, c.name)}
+                                    data-ocid="records.confirm_button"
+                                  >
+                                    {language === "ta"
+                                      ? "உறுதிப்படுத்து நீக்கு"
+                                      : "Confirm Delete"}
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 h-8 text-xs"
+                                    onClick={() => setConfirmDeleteId(null)}
+                                    data-ocid="records.cancel_button"
+                                  >
+                                    {t.cancel}
+                                  </Button>
+                                </div>
+                              </div>
+                            ) : (
+                              <Button
+                                variant="destructive"
+                                size="sm"
+                                className="w-full h-8 text-xs"
+                                onClick={() => handleDelete(c.id, c.name)}
+                                data-ocid={`records.delete_button.${i + 1}`}
+                              >
+                                <Trash2 className="h-3 w-3 mr-1" />
+                                {language === "ta"
+                                  ? "வாடிக்கையாளரை நீக்கு"
+                                  : "Delete Customer"}
+                              </Button>
+                            )}
+                          </div>
+                        )}
                       </div>
                     </DialogContent>
                   </Dialog>

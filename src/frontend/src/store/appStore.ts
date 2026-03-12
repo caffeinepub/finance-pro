@@ -57,6 +57,13 @@ interface AppStore extends AppState {
   // Report fields
   saveReportCustomField: (f: ReportCustomField) => void;
   deleteReportCustomField: (id: string) => void;
+  // Restore
+  restoreFromBackup: (data: {
+    customers?: Customer[];
+    emiPayments?: EMIPayment[];
+    lineCategories?: LineCategory[];
+    reportCustomFields?: ReportCustomField[];
+  }) => void;
 }
 
 export const useAppStore = create<AppStore>()(
@@ -164,6 +171,14 @@ export const useAppStore = create<AppStore>()(
       deleteReportCustomField: (id) =>
         set((s) => ({
           reportCustomFields: s.reportCustomFields.filter((f) => f.id !== id),
+        })),
+
+      restoreFromBackup: (data) =>
+        set((s) => ({
+          customers: data.customers ?? s.customers,
+          emiPayments: data.emiPayments ?? s.emiPayments,
+          lineCategories: data.lineCategories ?? s.lineCategories,
+          reportCustomFields: data.reportCustomFields ?? s.reportCustomFields,
         })),
     }),
     { name: "finance-pro-store" },
