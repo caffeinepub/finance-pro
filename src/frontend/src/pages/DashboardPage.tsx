@@ -1,0 +1,117 @@
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CreditCard, DollarSign, TrendingUp, Users } from "lucide-react";
+import { useAppStore } from "../store/appStore";
+import { outstandingAmount } from "../store/calculations";
+import { labels } from "../store/labels";
+
+export default function DashboardPage() {
+  const { customers, emiPayments, lineCategories, language } = useAppStore();
+  const t = labels[language];
+
+  const today = new Date().toISOString().split("T")[0];
+
+  const totalCustomers = customers.length;
+  const activeLoans = customers.filter(
+    (c) => outstandingAmount(c, emiPayments) > 0,
+  ).length;
+  const totalLoanAmount = customers.reduce((s, c) => s + c.loanAmount, 0);
+  const todayCollection = emiPayments
+    .filter((e) => e.paymentDate === today)
+    .reduce((s, e) => s + e.amount, 0);
+
+  const recentActivity = [...emiPayments]
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+    .slice(0, 10)
+    .map((e) => ({
+      ...e,
+      customerName:
+        customers.find((c) => c.id === e.customerId)?.name ?? "Unknown",
+      lineName:
+        lineCategories.find(
+          (l) =>
+            l.id ===
+            customers.find((c) => c.id === e.customerId)?.lineCategoryId,
+        )?.name ?? "",
+    }));
+
+  const cards = [
+    {
+      label: t.totalCustomers,
+      value: totalCustomers,
+      icon: Users,
+      color: "text-blue-500",
+    },
+    {
+      label: t.activeLoans,
+      value: activeLoans,
+      icon: TrendingUp,
+      color: "text-emerald-500",
+    },
+    {
+      label: t.totalLoanAmount,
+      value: `₹${totalLoanAmount.toLocaleString()}`,
+      icon: DollarSign,
+      color: "text-amber-500",
+    },
+    {
+      label: t.todayCollection,
+      value: `₹${todayCollection.toLocaleString()}`,
+      icon: CreditCard,
+      color: "text-violet-500",
+    },
+  ];
+
+  return (
+    <div data-ocid="dashboard.page" className="space-y-4">
+      <h2 className="text-lg font-bold text-foreground">{t.dashboard}</h2>
+      <div className="grid grid-cols-2 gap-3">
+        {cards.map((card) => (
+          <Card key={card.label} className="shadow-sm">
+            <CardContent className="p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <card.icon className={`h-4 w-4 ${card.color}`} />
+                <span className="text-xs text-muted-foreground leading-tight">
+                  {card.label}
+                </span>
+              </div>
+              <p className="text-xl font-bold text-foreground">{card.value}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      <Card data-ocid="dashboard.list">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-sm">{t.recentActivity}</CardTitle>
+        </CardHeader>
+        <CardContent className="p-0">
+          {recentActivity.length === 0 ? (
+            <p className="text-center text-muted-foreground text-sm py-4">
+              {t.noCustomers}
+            </p>
+          ) : (
+            <div className="divide-y divide-border">
+              {recentActivity.map((a, i) => (
+                <div
+                  key={a.id}
+                  className="flex items-center justify-between px-4 py-2.5"
+                  data-ocid={`dashboard.activity.item.${i + 1}`}
+                >
+                  <div>
+                    <p className="text-sm font-medium">{a.customerName}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {a.lineName} &bull; {a.paymentDate}
+                    </p>
+                  </div>
+                  <span className="text-sm font-semibold text-emerald-600">
+                    ₹{a.amount.toLocaleString()}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
