@@ -1,11 +1,25 @@
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { CreditCard, DollarSign, TrendingUp, Users } from "lucide-react";
+import {
+  CreditCard,
+  Download,
+  IndianRupee,
+  TrendingUp,
+  Users,
+} from "lucide-react";
 import { useAppStore } from "../store/appStore";
 import { outstandingAmount } from "../store/calculations";
 import { labels } from "../store/labels";
 
 export default function DashboardPage() {
-  const { customers, emiPayments, lineCategories, language } = useAppStore();
+  const {
+    customers,
+    emiPayments,
+    lineCategories,
+    language,
+    users,
+    reportCustomFields,
+  } = useAppStore();
   const t = labels[language];
 
   const today = new Date().toISOString().split("T")[0];
@@ -50,7 +64,7 @@ export default function DashboardPage() {
     {
       label: t.totalLoanAmount,
       value: `₹${totalLoanAmount.toLocaleString()}`,
-      icon: DollarSign,
+      icon: IndianRupee,
       color: "text-amber-500",
     },
     {
@@ -61,9 +75,44 @@ export default function DashboardPage() {
     },
   ];
 
+  const handleDownloadBackup = () => {
+    const backupData = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      data: {
+        customers,
+        emiPayments,
+        lineCategories,
+        users: users.map((u) => ({ ...u, password: undefined })),
+        reportCustomFields,
+      },
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `finance-pro-backup-${today}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
   return (
     <div data-ocid="dashboard.page" className="space-y-4">
-      <h2 className="text-lg font-bold text-foreground">{t.dashboard}</h2>
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-bold text-foreground">{t.dashboard}</h2>
+        <Button
+          data-ocid="dashboard.backup_button"
+          size="sm"
+          variant="outline"
+          onClick={handleDownloadBackup}
+          className="flex items-center gap-1.5 text-xs"
+        >
+          <Download className="h-3.5 w-3.5" />
+          {language === "ta" ? "பேக்கப்" : "Backup"}
+        </Button>
+      </div>
       <div className="grid grid-cols-2 gap-3">
         {cards.map((card) => (
           <Card key={card.label} className="shadow-sm">
@@ -110,6 +159,16 @@ export default function DashboardPage() {
               ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-dashed border-muted-foreground/30 bg-muted/20">
+        <CardContent className="p-3">
+          <p className="text-xs text-muted-foreground">
+            {language === "ta"
+              ? "💡 பேக்கப் கோப்பை Google Drive இல் பதிவேற்றவும்: drive.google.com → புதியது → கோப்பு பதிவேற்றம்"
+              : "💡 To save backup to Google Drive: tap Backup → then upload the downloaded file at drive.google.com → New → File upload"}
+          </p>
         </CardContent>
       </Card>
     </div>

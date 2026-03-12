@@ -81,9 +81,6 @@ export default function LoginPage() {
           </div>
         </CardContent>
       </Card>
-      <p className="text-white/50 text-xs mt-4">
-        admin / admin123 &bull; agent1 / agent123
-      </p>
     </div>
   );
 }

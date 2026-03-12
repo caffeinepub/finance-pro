@@ -1,6 +1,7 @@
 import { Toaster } from "@/components/ui/sonner";
 import { useState } from "react";
 import Layout from "./components/Layout";
+import PWAInstallPrompt from "./components/PWAInstallPrompt";
 import LoginPage from "./pages/LoginPage";
 import { useAppStore } from "./store/appStore";
 
@@ -12,6 +13,7 @@ export default function App() {
     return (
       <>
         <LoginPage />
+        <PWAInstallPrompt />
         <Toaster />
       </>
     );
@@ -19,6 +21,7 @@ export default function App() {
   return (
     <>
       <Layout settingsOpen={settingsOpen} setSettingsOpen={setSettingsOpen} />
+      <PWAInstallPrompt />
       <Toaster />
     </>
   );

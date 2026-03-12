@@ -34,84 +34,6 @@ const defaultLineCategories: LineCategory[] = [
   { id: "lc5", name: "Line E" },
 ];
 
-const today = new Date().toISOString().split("T")[0];
-const yesterday = new Date(Date.now() - 86400000).toISOString().split("T")[0];
-
-const defaultCustomers: Customer[] = [
-  {
-    id: "c1",
-    serialNumber: "001",
-    name: "Rajesh Kumar",
-    phone: "9876543210",
-    address: "12 Main St, Chennai",
-    loanAmount: 50000,
-    loanInterest: 10,
-    loanType: "Post",
-    loanFee: 0,
-    lineCategoryId: "lc1",
-    createdAt: yesterday,
-    createdBy: "u1",
-    isActive: true,
-  },
-  {
-    id: "c2",
-    serialNumber: "002",
-    name: "Priya Sharma",
-    phone: "9876543211",
-    address: "45 Park Ave, Coimbatore",
-    loanAmount: 30000,
-    loanInterest: 5,
-    loanType: "Pre",
-    loanFee: 0,
-    lineCategoryId: "lc2",
-    createdAt: yesterday,
-    createdBy: "u1",
-    isActive: true,
-  },
-  {
-    id: "c3",
-    serialNumber: "003",
-    name: "Suresh Babu",
-    phone: "9876543212",
-    address: "78 East St, Madurai",
-    loanAmount: 20000,
-    loanInterest: 8,
-    loanType: "Post",
-    loanFee: 0,
-    lineCategoryId: "lc1",
-    createdAt: today,
-    createdBy: "u2",
-    isActive: true,
-  },
-];
-
-const defaultEMIs: EMIPayment[] = [
-  {
-    id: "e1",
-    customerId: "c1",
-    amount: 5000,
-    paymentDate: yesterday,
-    recordedBy: "u1",
-    createdAt: yesterday,
-  },
-  {
-    id: "e2",
-    customerId: "c2",
-    amount: 3000,
-    paymentDate: yesterday,
-    recordedBy: "u2",
-    createdAt: yesterday,
-  },
-  {
-    id: "e3",
-    customerId: "c1",
-    amount: 5000,
-    paymentDate: today,
-    recordedBy: "u1",
-    createdAt: today,
-  },
-];
-
 interface AppStore extends AppState {
   login: (username: string, password: string) => boolean;
   logout: () => void;
@@ -142,8 +64,8 @@ export const useAppStore = create<AppStore>()(
     (set, get) => ({
       users: defaultUsers,
       lineCategories: defaultLineCategories,
-      customers: defaultCustomers,
-      emiPayments: defaultEMIs,
+      customers: [] as Customer[],
+      emiPayments: [] as EMIPayment[],
       reportCustomFields: [],
       currentUser: null,
       language: "en",
