@@ -86,6 +86,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
   function validate(f: FormFields): FieldErrors {
     const e: FieldErrors = {};
     if (!f.lineCategoryId) e.lineCategoryId = required;
+    if (!f.loanDate) e.loanDate = required;
     if (!f.serialNumber.trim()) e.serialNumber = required;
     if (!f.name.trim()) e.name = required;
     if (!f.phone.trim()) {
@@ -97,7 +98,6 @@ export default function AddEntryPage({ onSuccess }: Props) {
     if (!f.loanAmount) e.loanAmount = required;
     if (!f.loanInterest) e.loanInterest = required;
     if (!f.loanFee) e.loanFee = required;
-    if (!f.loanDate) e.loanDate = required;
     return e;
   }
 
@@ -130,6 +130,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
       loanFee: Number(form.loanFee) || 0,
       loanType: form.loanType,
       lineCategoryId: form.lineCategoryId,
+      loanDate: form.loanDate,
       isActive: true,
     });
     showAlert(t.customerAdded, "success");
@@ -173,7 +174,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">
-            {/* Line Category */}
+            {/* 1. Line Category */}
             <div className="space-y-1">
               <Label className="text-xs">{t.lineCategory} *</Label>
               <Select
@@ -197,7 +198,19 @@ export default function AddEntryPage({ onSuccess }: Props) {
               <ErrorMsg fieldKey="lineCategoryId" />
             </div>
 
-            {/* Serial Number & Phone */}
+            {/* 2. Loan Date (moved to 2nd position) */}
+            <div className="space-y-1">
+              <Label className="text-xs">Loan Date *</Label>
+              <Input
+                type="date"
+                {...field("loanDate")}
+                className={errors.loanDate ? "border-red-500" : ""}
+                data-ocid="add_entry.loan_date_input"
+              />
+              <ErrorMsg fieldKey="loanDate" />
+            </div>
+
+            {/* 3. Serial Number & Phone */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">{t.serialNumber} *</Label>
@@ -228,7 +241,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
               </div>
             </div>
 
-            {/* Customer Name */}
+            {/* 4. Customer Name */}
             <div className="space-y-1">
               <Label className="text-xs">{t.customerName} *</Label>
               <Input
@@ -240,7 +253,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
               <ErrorMsg fieldKey="name" />
             </div>
 
-            {/* Address */}
+            {/* 5. Address */}
             <div className="space-y-1">
               <Label className="text-xs">{t.address} *</Label>
               <Input
@@ -252,7 +265,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
               <ErrorMsg fieldKey="address" />
             </div>
 
-            {/* Loan Amount & Interest */}
+            {/* 6. Loan Amount & Interest */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">{t.loanAmount} *</Label>
@@ -278,7 +291,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
               </div>
             </div>
 
-            {/* Loan Fee */}
+            {/* 7. Loan Fee */}
             <div className="space-y-1">
               <Label className="text-xs">
                 {t.loanFee}{" "}
@@ -295,19 +308,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
               <ErrorMsg fieldKey="loanFee" />
             </div>
 
-            {/* Loan Date */}
-            <div className="space-y-1">
-              <Label className="text-xs">Loan Date *</Label>
-              <Input
-                type="date"
-                {...field("loanDate")}
-                className={errors.loanDate ? "border-red-500" : ""}
-                data-ocid="add_entry.loan_date_input"
-              />
-              <ErrorMsg fieldKey="loanDate" />
-            </div>
-
-            {/* Loan Type */}
+            {/* 8. Loan Type */}
             <div className="space-y-1">
               <Label className="text-xs">{t.loanType} *</Label>
               <Select

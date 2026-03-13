@@ -10,6 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { formatDate } from "@/lib/utils";
 import { Download, Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAlert } from "../components/AlertPopup";
@@ -120,7 +121,7 @@ export default function ReportsPage() {
 
   const handleExport = () => {
     const data: Record<string, number | string> = {
-      Date: reportDate,
+      Date: formatDate(reportDate),
       Line: currentLineName,
       [t.preAmount]: Number(preAmount) || 0,
       [t.collection]: collection,
@@ -463,7 +464,7 @@ export default function ReportsPage() {
                       onClick={() => setViewReport(r)}
                     >
                       <CardTitle className="text-sm font-semibold">
-                        {r.reportDate} — {r.lineName}
+                        {formatDate(r.reportDate)} — {r.lineName}
                       </CardTitle>
                     </button>
                     <button
@@ -531,7 +532,9 @@ export default function ReportsPage() {
           <div className="bg-background rounded-2xl w-full max-w-sm max-h-[85vh] overflow-y-auto">
             <div className="p-4 border-b flex items-center justify-between">
               <div>
-                <p className="font-bold text-sm">{viewReport.reportDate}</p>
+                <p className="font-bold text-sm">
+                  {formatDate(viewReport.reportDate)}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   {viewReport.lineName}
                 </p>

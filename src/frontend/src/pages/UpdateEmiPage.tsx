@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatDate } from "@/lib/utils";
 import { Check, Pencil, X } from "lucide-react";
 import { useState } from "react";
 import { useAlert } from "../components/AlertPopup";
@@ -243,7 +244,7 @@ export default function UpdateEmiPage() {
                       data-ocid={`update_emi.emi_item.${i + 1}`}
                     >
                       <div>
-                        <p className="text-sm">{e.paymentDate}</p>
+                        <p className="text-sm">{formatDate(e.paymentDate)}</p>
                         <p className="text-xs text-muted-foreground">
                           {e.recordedBy}
                         </p>

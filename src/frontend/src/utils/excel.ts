@@ -7,6 +7,15 @@ import {
 } from "../store/calculations";
 import type { Customer, EMIPayment, LineCategory } from "../store/types";
 
+function fmtDate(dateStr: string): string {
+  if (!dateStr) return "";
+  const parts = dateStr.split("-");
+  if (parts.length === 3 && parts[0].length === 4) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return dateStr;
+}
+
 export function exportCustomers(
   customers: Customer[],
   lineCategories: LineCategory[],
@@ -17,6 +26,7 @@ export function exportCustomers(
   // Sheet 1: Customer records
   const customerData = customers.map((c) => ({
     "Serial No": c.serialNumber,
+    "Loan Date": fmtDate(c.createdAt),
     Name: c.name,
     Phone: c.phone,
     Address: c.address,
@@ -39,7 +49,7 @@ export function exportCustomers(
     .map((e) => {
       const c = customers.find((x) => x.id === e.customerId);
       return {
-        Date: e.paymentDate,
+        Date: fmtDate(e.paymentDate),
         "Serial No": c?.serialNumber ?? "",
         "Customer Name": c?.name ?? "",
         Line:
@@ -75,7 +85,7 @@ export function exportEMIs(
   const data = emis.map((e) => {
     const c = customers.find((x) => x.id === e.customerId);
     return {
-      Date: e.paymentDate,
+      Date: fmtDate(e.paymentDate),
       Customer: c?.name ?? "",
       Serial: c?.serialNumber ?? "",
       Line: lineCategories.find((l) => l.id === c?.lineCategoryId)?.name ?? "",
@@ -110,6 +120,7 @@ export function exportReport(
   // Sheet 2: Customer Records for the selected line/date filter
   const customerData = customers.map((c) => ({
     "Serial No": c.serialNumber,
+    "Loan Date": fmtDate(c.createdAt),
     Name: c.name,
     Phone: c.phone,
     Address: c.address,
@@ -134,7 +145,7 @@ export function exportReport(
     .map((e) => {
       const c = customers.find((x) => x.id === e.customerId);
       return {
-        Date: e.paymentDate,
+        Date: fmtDate(e.paymentDate),
         "Serial No": c?.serialNumber ?? "",
         "Customer Name": c?.name ?? "",
         Line:

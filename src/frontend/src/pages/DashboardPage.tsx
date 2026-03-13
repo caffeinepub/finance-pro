@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDate } from "@/lib/utils";
 import { CreditCard, IndianRupee, TrendingUp, Users } from "lucide-react";
 import { useAppStore } from "../store/appStore";
 import { outstandingAmount } from "../store/calculations";
@@ -104,7 +105,7 @@ export default function DashboardPage() {
                   <div>
                     <p className="text-sm font-medium">{a.customerName}</p>
                     <p className="text-xs text-muted-foreground">
-                      {a.lineName} &bull; {a.paymentDate}
+                      {a.lineName} &bull; {formatDate(a.paymentDate)}
                     </p>
                   </div>
                   <span className="text-sm font-semibold text-emerald-600">

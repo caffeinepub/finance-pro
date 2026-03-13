@@ -55,7 +55,9 @@ interface AppStore extends AppState {
   updateLineCategory: (id: string, name: string) => void;
   deleteLineCategory: (id: string) => void;
   // Customers
-  addCustomer: (c: Omit<Customer, "id" | "createdAt" | "createdBy">) => void;
+  addCustomer: (
+    c: Omit<Customer, "id" | "createdAt" | "createdBy"> & { loanDate?: string },
+  ) => void;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
   deleteCustomer: (id: string) => void;
   // Users
@@ -167,10 +169,14 @@ export const useAppStore = create<AppStore>()(
       },
 
       addCustomer: (c) => {
+        const { loanDate, ...fields } = c as Omit<
+          Customer,
+          "id" | "createdAt" | "createdBy"
+        > & { loanDate?: string };
         const newCustomer: Customer = {
-          ...c,
+          ...fields,
           id: crypto.randomUUID(),
-          createdAt: new Date().toISOString().split("T")[0],
+          createdAt: loanDate ?? new Date().toISOString().split("T")[0],
           createdBy: get().currentUser?.id ?? "u1",
         };
         set((s) => ({ customers: [...s.customers, newCustomer] }));
@@ -359,29 +365,13 @@ export const useAppStore = create<AppStore>()(
           ]);
 
           set((s) => {
-            // Merge customers: remote wins for existing IDs, add new ones
-            const localCustomerIds = new Set(s.customers.map((c) => c.id));
-            const merged = [...s.customers];
-            for (const rc of remoteCustomers) {
-              if (localCustomerIds.has(rc.id)) {
-                const idx = merged.findIndex((c) => c.id === rc.id);
-                if (idx !== -1) merged[idx] = rc as unknown as Customer;
-              } else {
-                merged.push(rc as unknown as Customer);
-              }
-            }
+            // FIX: Cloud is source of truth for customers -- replace local entirely
+            // so deletions on one device propagate to all other devices.
+            const customers = remoteCustomers as unknown as Customer[];
 
-            // Merge EMIs: remote wins for existing IDs, add new ones
-            const localEMIIds = new Set(s.emiPayments.map((e) => e.id));
-            const mergedEMIs = [...s.emiPayments];
-            for (const re of remoteEMIs) {
-              if (localEMIIds.has(re.id)) {
-                const idx = mergedEMIs.findIndex((e) => e.id === re.id);
-                if (idx !== -1) mergedEMIs[idx] = re as unknown as EMIPayment;
-              } else {
-                mergedEMIs.push(re as unknown as EMIPayment);
-              }
-            }
+            // FIX: Cloud is source of truth for EMIs -- replace local entirely
+            // so deletions on one device propagate to all other devices.
+            const emiPayments = remoteEMIs as unknown as EMIPayment[];
 
             // Line categories: cloud overwrites local if cloud has data
             const lineCategories =
@@ -411,15 +401,14 @@ export const useAppStore = create<AppStore>()(
               if (refreshed) updatedCurrentUser = refreshed;
             }
 
-            // Saved reports: cloud overwrites local (last-write-wins by lineName+reportDate)
-            const savedReports =
-              remoteSavedReports.length > 0
-                ? remoteSavedReports
-                : s.savedReports;
+            // FIX: Always trust cloud for saved reports, even if the list is empty.
+            // Previously, an empty cloud response fell back to local, so deletions
+            // made on another device (or all reports deleted) never propagated.
+            const savedReports = remoteSavedReports as SavedReport[];
 
             return {
-              customers: merged,
-              emiPayments: mergedEMIs,
+              customers,
+              emiPayments,
               lineCategories,
               users: [...admins, ...cloudAgents],
               currentUser: updatedCurrentUser,

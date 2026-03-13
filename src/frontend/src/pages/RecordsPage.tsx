@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { formatDate } from "@/lib/utils";
 import { Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -159,7 +160,8 @@ export default function RecordsPage() {
                       </p>
                       <p className="text-xs text-muted-foreground">
                         {line?.name} &bull;{" "}
-                        {c.loanType === "Pre" ? t.loanTypePre : t.loanTypePost}
+                        {c.loanType === "Pre" ? t.loanTypePre : t.loanTypePost}{" "}
+                        &bull; {c.createdAt}bull; {formatDate(c.createdAt)}
                       </p>
                     </div>
                     <Badge
@@ -220,6 +222,7 @@ export default function RecordsPage() {
                           {(
                             [
                               [t.serialNumber, c.serialNumber],
+                              ["Loan Date", formatDate(c.createdAt)],
                               [t.phone, c.phone],
                               [t.address, c.address],
                               [t.lineCategory, line?.name ?? ""],
@@ -263,7 +266,7 @@ export default function RecordsPage() {
                                   key={e.id}
                                   className="flex justify-between text-xs bg-muted/50 rounded px-2 py-1"
                                 >
-                                  <span>{e.paymentDate}</span>
+                                  <span>{formatDate(e.paymentDate)}</span>
                                   <span className="font-medium">
                                     ₹{e.amount.toLocaleString()}
                                   </span>
