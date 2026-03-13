@@ -1,5 +1,5 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -171,10 +171,7 @@ export default function ReportsPage() {
       <div className="grid grid-cols-2 gap-3">
         {/* LEFT */}
         <Card>
-          <CardHeader className="pb-1 pt-3 px-3">
-            <CardTitle className="text-xs text-primary">LEFT (இடது)</CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 pb-3 space-y-2">
+          <CardContent className="px-3 pb-3 pt-3 space-y-2">
             <div className="space-y-1">
               <Label className="text-[10px] text-muted-foreground">
                 {t.preAmount}
@@ -257,12 +254,7 @@ export default function ReportsPage() {
 
         {/* RIGHT */}
         <Card>
-          <CardHeader className="pb-1 pt-3 px-3">
-            <CardTitle className="text-xs text-destructive">
-              RIGHT (வலது)
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="px-3 pb-3 space-y-2">
+          <CardContent className="px-3 pb-3 pt-3 space-y-2">
             <div className="space-y-1">
               <Label className="text-[10px] text-muted-foreground">
                 {t.lending}
