@@ -20,6 +20,27 @@ interface Props {
   onSuccess?: () => void;
 }
 
+const ERR_REQUIRED = { en: "Required", ta: "தேவை" };
+const ERR_PHONE = {
+  en: "Must be exactly 10 digits",
+  ta: "சரியாக 10 இலக்கங்கள் இருக்க வேண்டும்",
+};
+
+type FormFields = {
+  serialNumber: string;
+  name: string;
+  phone: string;
+  address: string;
+  loanAmount: string;
+  loanInterest: string;
+  loanFee: string;
+  loanType: LoanType;
+  lineCategoryId: string;
+  loanDate: string;
+};
+
+type FieldErrors = Partial<Record<keyof FormFields, string>>;
+
 export default function AddEntryPage({ onSuccess }: Props) {
   const { lineCategories, addCustomer, language, currentUser } = useAppStore();
   const t = labels[language];
@@ -32,7 +53,9 @@ export default function AddEntryPage({ onSuccess }: Props) {
     ? lineCategories.filter((l) => assignedLines.includes(l.id))
     : lineCategories;
 
-  const [form, setForm] = useState({
+  const today = new Date().toISOString().split("T")[0];
+
+  const [form, setForm] = useState<FormFields>({
     serialNumber: "",
     name: "",
     phone: "",
@@ -40,9 +63,13 @@ export default function AddEntryPage({ onSuccess }: Props) {
     loanAmount: "",
     loanInterest: "",
     loanFee: "",
-    loanType: "Post" as LoanType,
+    loanType: "Post",
     lineCategoryId: "",
+    loanDate: today,
   });
+
+  const [errors, setErrors] = useState<FieldErrors>({});
+  const [submitted, setSubmitted] = useState(false);
 
   const preview =
     form.loanAmount && form.loanInterest
@@ -53,17 +80,46 @@ export default function AddEntryPage({ onSuccess }: Props) {
         } as Parameters<typeof loanRepayAmount>[0])
       : null;
 
+  const required = ERR_REQUIRED[language];
+  const phoneErr = ERR_PHONE[language];
+
+  function validate(f: FormFields): FieldErrors {
+    const e: FieldErrors = {};
+    if (!f.lineCategoryId) e.lineCategoryId = required;
+    if (!f.serialNumber.trim()) e.serialNumber = required;
+    if (!f.name.trim()) e.name = required;
+    if (!f.phone.trim()) {
+      e.phone = required;
+    } else if (!/^\d{10}$/.test(f.phone.trim())) {
+      e.phone = phoneErr;
+    }
+    if (!f.address.trim()) e.address = required;
+    if (!f.loanAmount) e.loanAmount = required;
+    if (!f.loanInterest) e.loanInterest = required;
+    if (!f.loanFee) e.loanFee = required;
+    if (!f.loanDate) e.loanDate = required;
+    return e;
+  }
+
+  const handleFieldChange = <K extends keyof FormFields>(
+    key: K,
+    value: FormFields[K],
+  ) => {
+    const updated = { ...form, [key]: value };
+    setForm(updated);
+    if (submitted) {
+      const newErrors = validate(updated);
+      setErrors(newErrors);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (
-      !form.serialNumber ||
-      !form.name ||
-      !form.loanAmount ||
-      !form.lineCategoryId
-    ) {
-      showAlert(t.fillRequired, "error");
-      return;
-    }
+    setSubmitted(true);
+    const errs = validate(form);
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
     addCustomer({
       serialNumber: form.serialNumber,
       name: form.name,
@@ -87,15 +143,25 @@ export default function AddEntryPage({ onSuccess }: Props) {
       loanFee: "",
       loanType: "Post",
       lineCategoryId: "",
+      loanDate: today,
     });
+    setErrors({});
+    setSubmitted(false);
     onSuccess?.();
   };
 
-  const field = (key: string) => ({
-    value: (form as Record<string, string>)[key],
+  const field = (
+    key: keyof Omit<FormFields, "loanType" | "lineCategoryId">,
+  ) => ({
+    value: form[key] as string,
     onChange: (e: React.ChangeEvent<HTMLInputElement>) =>
-      setForm((f) => ({ ...f, [key]: e.target.value })),
+      handleFieldChange(key, e.target.value),
   });
+
+  const ErrorMsg = ({ fieldKey }: { fieldKey: keyof FormFields }) =>
+    errors[fieldKey] ? (
+      <p className="text-xs text-red-500 mt-0.5">{errors[fieldKey]}</p>
+    ) : null;
 
   return (
     <div data-ocid="add_entry.page">
@@ -103,19 +169,21 @@ export default function AddEntryPage({ onSuccess }: Props) {
       <h2 className="text-lg font-bold mb-4">{t.addEntry}</h2>
       <Card>
         <CardHeader className="pb-2">
-          <CardTitle className="text-sm">Customer & Loan Details</CardTitle>
+          <CardTitle className="text-sm">Customer &amp; Loan Details</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-3">
+            {/* Line Category */}
             <div className="space-y-1">
               <Label className="text-xs">{t.lineCategory} *</Label>
               <Select
                 value={form.lineCategoryId}
-                onValueChange={(v) =>
-                  setForm((f) => ({ ...f, lineCategoryId: v }))
-                }
+                onValueChange={(v) => handleFieldChange("lineCategoryId", v)}
               >
-                <SelectTrigger data-ocid="add_entry.line_category_select">
+                <SelectTrigger
+                  data-ocid="add_entry.line_category_select"
+                  className={errors.lineCategoryId ? "border-red-500" : ""}
+                >
                   <SelectValue placeholder={t.selectLine} />
                 </SelectTrigger>
                 <SelectContent>
@@ -126,42 +194,65 @@ export default function AddEntryPage({ onSuccess }: Props) {
                   ))}
                 </SelectContent>
               </Select>
+              <ErrorMsg fieldKey="lineCategoryId" />
             </div>
+
+            {/* Serial Number & Phone */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">{t.serialNumber} *</Label>
                 <Input
                   placeholder=""
                   {...field("serialNumber")}
+                  className={errors.serialNumber ? "border-red-500" : ""}
                   data-ocid="add_entry.serial_input"
                 />
+                <ErrorMsg fieldKey="serialNumber" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">{t.phone}</Label>
+                <Label className="text-xs">{t.phone} *</Label>
                 <Input
                   placeholder=""
                   type="tel"
-                  {...field("phone")}
+                  inputMode="numeric"
+                  maxLength={10}
+                  value={form.phone}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, "").slice(0, 10);
+                    handleFieldChange("phone", val);
+                  }}
+                  className={errors.phone ? "border-red-500" : ""}
                   data-ocid="add_entry.phone_input"
                 />
+                <ErrorMsg fieldKey="phone" />
               </div>
             </div>
+
+            {/* Customer Name */}
             <div className="space-y-1">
               <Label className="text-xs">{t.customerName} *</Label>
               <Input
-                placeholder="Customer name"
+                placeholder=""
                 {...field("name")}
+                className={errors.name ? "border-red-500" : ""}
                 data-ocid="add_entry.name_input"
               />
+              <ErrorMsg fieldKey="name" />
             </div>
+
+            {/* Address */}
             <div className="space-y-1">
-              <Label className="text-xs">{t.address}</Label>
+              <Label className="text-xs">{t.address} *</Label>
               <Input
-                placeholder="Address"
+                placeholder=""
                 {...field("address")}
+                className={errors.address ? "border-red-500" : ""}
                 data-ocid="add_entry.address_input"
               />
+              <ErrorMsg fieldKey="address" />
             </div>
+
+            {/* Loan Amount & Interest */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <Label className="text-xs">{t.loanAmount} *</Label>
@@ -169,37 +260,60 @@ export default function AddEntryPage({ onSuccess }: Props) {
                   placeholder=""
                   type="number"
                   {...field("loanAmount")}
+                  className={errors.loanAmount ? "border-red-500" : ""}
                   data-ocid="add_entry.loan_amount_input"
                 />
+                <ErrorMsg fieldKey="loanAmount" />
               </div>
               <div className="space-y-1">
-                <Label className="text-xs">{t.loanInterest}</Label>
+                <Label className="text-xs">{t.loanInterest} *</Label>
                 <Input
                   placeholder=""
                   type="number"
                   {...field("loanInterest")}
+                  className={errors.loanInterest ? "border-red-500" : ""}
                   data-ocid="add_entry.loan_interest_input"
                 />
+                <ErrorMsg fieldKey="loanInterest" />
               </div>
             </div>
+
+            {/* Loan Fee */}
             <div className="space-y-1">
               <Label className="text-xs">
                 {t.loanFee}{" "}
                 <span className="text-muted-foreground">(மகிமை)</span>
+                {" *"}
               </Label>
               <Input
-                placeholder="0"
+                placeholder=""
                 type="number"
                 {...field("loanFee")}
+                className={errors.loanFee ? "border-red-500" : ""}
                 data-ocid="add_entry.loan_fee_input"
               />
+              <ErrorMsg fieldKey="loanFee" />
             </div>
+
+            {/* Loan Date */}
             <div className="space-y-1">
-              <Label className="text-xs">{t.loanType}</Label>
+              <Label className="text-xs">Loan Date *</Label>
+              <Input
+                type="date"
+                {...field("loanDate")}
+                className={errors.loanDate ? "border-red-500" : ""}
+                data-ocid="add_entry.loan_date_input"
+              />
+              <ErrorMsg fieldKey="loanDate" />
+            </div>
+
+            {/* Loan Type */}
+            <div className="space-y-1">
+              <Label className="text-xs">{t.loanType} *</Label>
               <Select
                 value={form.loanType}
                 onValueChange={(v) =>
-                  setForm((f) => ({ ...f, loanType: v as LoanType }))
+                  handleFieldChange("loanType", v as LoanType)
                 }
               >
                 <SelectTrigger data-ocid="add_entry.loan_type_select">
@@ -211,6 +325,8 @@ export default function AddEntryPage({ onSuccess }: Props) {
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Repay Preview */}
             {preview !== null && (
               <div className="bg-primary/10 rounded-lg p-3 text-sm">
                 <span className="text-muted-foreground">
@@ -221,6 +337,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
                 </span>
               </div>
             )}
+
             <Button
               type="submit"
               className="w-full"

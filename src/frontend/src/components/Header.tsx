@@ -8,15 +8,30 @@ interface Props {
 }
 
 export default function Header({ onSettingsClick }: Props) {
-  const { logout, language, setLanguage } = useAppStore();
+  const { logout, language, setLanguage, syncStatus } = useAppStore();
   const t = labels[language];
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-primary text-primary-foreground h-16 flex items-center px-4 shadow-lg">
-      <div className="flex-1">
+      <div className="flex-1 flex items-center gap-2">
         <span className="text-xl font-bold tracking-wide font-display">
           {t.appName}
         </span>
+        {syncStatus === "syncing" && (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-white/20 text-primary-foreground/90 animate-pulse">
+            ⟳ {language === "ta" ? "ஒத்திசைக்கிறது" : "Syncing"}
+          </span>
+        )}
+        {syncStatus === "synced" && (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-white/20 text-primary-foreground/90">
+            ✓ {language === "ta" ? "ஒத்திசைக்கப்பட்டது" : "Synced"}
+          </span>
+        )}
+        {syncStatus === "error" && (
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-red-500/30 text-primary-foreground/80">
+            ✕ {language === "ta" ? "பிழை" : "Offline"}
+          </span>
+        )}
       </div>
       <div className="flex items-center gap-1">
         <Button

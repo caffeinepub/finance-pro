@@ -1,5 +1,12 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
+import {
+  deleteCustomerFromCloud,
+  deleteEMIFromCloud,
+  loadFromCloud,
+  syncCustomerToCloud,
+  syncEMIToCloud,
+} from "../utils/cloudSync";
 import type {
   AppState,
   Customer,
@@ -35,7 +42,11 @@ const defaultLineCategories: LineCategory[] = [
   { id: "lc5", name: "Line E" },
 ];
 
+export type SyncStatus = "idle" | "syncing" | "synced" | "error";
+
 interface AppStore extends AppState {
+  syncStatus: SyncStatus;
+  setSyncStatus: (status: SyncStatus) => void;
   login: (username: string, password: string) => boolean;
   logout: () => void;
   setLanguage: (lang: "en" | "ta") => void;
@@ -69,6 +80,18 @@ interface AppStore extends AppState {
     reportCustomFields?: ReportCustomField[];
     savedReports?: SavedReport[];
   }) => void;
+  // Cloud sync
+  loadCloudData: () => Promise<void>;
+}
+
+function fireAndForget(
+  fn: () => Promise<void>,
+  setSyncStatus: (s: SyncStatus) => void,
+) {
+  setSyncStatus("syncing");
+  fn()
+    .then(() => setSyncStatus("synced"))
+    .catch(() => setSyncStatus("error"));
 }
 
 export const useAppStore = create<AppStore>()(
@@ -82,6 +105,9 @@ export const useAppStore = create<AppStore>()(
       savedReports: [],
       currentUser: null,
       language: "en",
+      syncStatus: "idle" as SyncStatus,
+
+      setSyncStatus: (status) => set({ syncStatus: status }),
 
       login: (username, password) => {
         const user = get().users.find(
@@ -114,24 +140,30 @@ export const useAppStore = create<AppStore>()(
           lineCategories: s.lineCategories.filter((l) => l.id !== id),
         })),
 
-      addCustomer: (c) =>
-        set((s) => ({
-          customers: [
-            ...s.customers,
-            {
-              ...c,
-              id: crypto.randomUUID(),
-              createdAt: new Date().toISOString().split("T")[0],
-              createdBy: s.currentUser?.id ?? "u1",
-            },
-          ],
-        })),
+      addCustomer: (c) => {
+        const newCustomer: Customer = {
+          ...c,
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString().split("T")[0],
+          createdBy: get().currentUser?.id ?? "u1",
+        };
+        set((s) => ({ customers: [...s.customers, newCustomer] }));
+        fireAndForget(
+          () => syncCustomerToCloud(newCustomer),
+          get().setSyncStatus,
+        );
+      },
       updateCustomer: (id, c) =>
         set((s) => ({
           customers: s.customers.map((x) => (x.id === id ? { ...x, ...c } : x)),
         })),
-      deleteCustomer: (id) =>
-        set((s) => ({ customers: s.customers.filter((x) => x.id !== id) })),
+      deleteCustomer: (id) => {
+        set((s) => ({
+          customers: s.customers.filter((x) => x.id !== id),
+          emiPayments: s.emiPayments.filter((e) => e.customerId !== id),
+        }));
+        fireAndForget(() => deleteCustomerFromCloud(id), get().setSyncStatus);
+      },
 
       addUser: (u) =>
         set((s) => ({
@@ -148,25 +180,30 @@ export const useAppStore = create<AppStore>()(
       deleteUser: (id) =>
         set((s) => ({ users: s.users.filter((x) => x.id !== id) })),
 
-      addEMIPayment: (e) =>
-        set((s) => ({
-          emiPayments: [
-            ...s.emiPayments,
-            {
-              ...e,
-              id: crypto.randomUUID(),
-              createdAt: new Date().toISOString(),
-            },
-          ],
-        })),
-      updateEMIPayment: (id, amount) =>
+      addEMIPayment: (e) => {
+        const newEMI: EMIPayment = {
+          ...e,
+          id: crypto.randomUUID(),
+          createdAt: new Date().toISOString(),
+        };
+        set((s) => ({ emiPayments: [...s.emiPayments, newEMI] }));
+        fireAndForget(() => syncEMIToCloud(newEMI), get().setSyncStatus);
+      },
+      updateEMIPayment: (id, amount) => {
         set((s) => ({
           emiPayments: s.emiPayments.map((e) =>
             e.id === id ? { ...e, amount } : e,
           ),
-        })),
-      deleteEMIPayment: (id) =>
-        set((s) => ({ emiPayments: s.emiPayments.filter((e) => e.id !== id) })),
+        }));
+        const updated = get().emiPayments.find((e) => e.id === id);
+        if (updated) {
+          fireAndForget(() => syncEMIToCloud(updated), get().setSyncStatus);
+        }
+      },
+      deleteEMIPayment: (id) => {
+        set((s) => ({ emiPayments: s.emiPayments.filter((e) => e.id !== id) }));
+        fireAndForget(() => deleteEMIFromCloud(id), get().setSyncStatus);
+      },
 
       saveReportCustomField: (f) =>
         set((s) => ({
@@ -203,7 +240,55 @@ export const useAppStore = create<AppStore>()(
           reportCustomFields: data.reportCustomFields ?? s.reportCustomFields,
           savedReports: data.savedReports ?? s.savedReports,
         })),
+
+      loadCloudData: async () => {
+        const { setSyncStatus } = get();
+        setSyncStatus("syncing");
+        try {
+          const { customers: remoteCustomers, emiPayments: remoteEMIs } =
+            await loadFromCloud();
+
+          set((s) => {
+            // Merge customers: remote wins for existing IDs, add new ones
+            const localCustomerIds = new Set(s.customers.map((c) => c.id));
+            const merged = [...s.customers];
+            for (const rc of remoteCustomers) {
+              if (localCustomerIds.has(rc.id)) {
+                const idx = merged.findIndex((c) => c.id === rc.id);
+                if (idx !== -1) merged[idx] = rc as unknown as Customer;
+              } else {
+                merged.push(rc as unknown as Customer);
+              }
+            }
+
+            // Merge EMIs: remote wins for existing IDs, add new ones
+            const localEMIIds = new Set(s.emiPayments.map((e) => e.id));
+            const mergedEMIs = [...s.emiPayments];
+            for (const re of remoteEMIs) {
+              if (localEMIIds.has(re.id)) {
+                const idx = mergedEMIs.findIndex((e) => e.id === re.id);
+                if (idx !== -1) mergedEMIs[idx] = re as unknown as EMIPayment;
+              } else {
+                mergedEMIs.push(re as unknown as EMIPayment);
+              }
+            }
+
+            return { customers: merged, emiPayments: mergedEMIs };
+          });
+
+          setSyncStatus("synced");
+        } catch {
+          setSyncStatus("error");
+        }
+      },
     }),
-    { name: "finance-pro-store" },
+    {
+      name: "finance-pro-store",
+      partialize: (state) => {
+        // Don't persist syncStatus
+        const { syncStatus: _syncStatus, ...rest } = state;
+        return rest;
+      },
+    },
   ),
 );
