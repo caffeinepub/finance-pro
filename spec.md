@@ -1,26 +1,29 @@
-# Finance Pro - Cloud Sync (Customers + EMIs)
+# Finance Pro
 
 ## Current State
-All data is stored in browser localStorage via Zustand persist middleware. No backend data models exist - the Motoko backend only has authorization code. All features (bilingual UI, roles, reports, Excel export, validation, etc.) work locally.
+Version 36 is live. Cloud sync works for customers, EMI payments, and line categories via an ICP Motoko backend. Agent accounts (username, password, assigned lines) are stored only in local browser storage. Admin account is local-only. Login checks the local users array.
 
 ## Requested Changes (Diff)
 
 ### Add
-- Motoko backend with two simple data stores: customers and EMI payments
-- Auto-sync: after every addCustomer / deleteCustomer / addEMIPayment / updateEMIPayment / deleteEMIPayment call, push changes to backend
-- On app startup (after login), load customers and EMI payments from the backend and merge with local (by ID, prefer remote for conflicts)
-- A `syncStatus` indicator in the UI (small "Syncing..." / "Synced" text in header)
+- `AgentAccount` type in Motoko backend with id, username, password, assignedLines fields
+- `addOrUpdateAgentAccount`, `getAgentAccounts`, `deleteAgentAccount` Motoko functions
+- `AgentAccount` interface in `backend.d.ts`
+- `syncAgentToCloud`, `deleteAgentFromCloud`, `loadAgentAccounts` in `cloudSync.ts`
+- `loadAgentsPreLogin` action in appStore that fetches agents from cloud and merges into users (replaces all agents, keeps admin)
+- App startup effect in `App.tsx` to call `loadAgentsPreLogin` on mount (before login)
 
 ### Modify
-- `appStore.ts`: after each customer/EMI mutation, call backend actor to persist; on mount fetch customers+EMIs from backend
-- `package.json`: ensure `xlsx` stays in dependencies
+- `appStore.ts`: `addUser`, `updateUser`, `deleteUser` now fire cloud sync after mutation (agents only, not admin)
+- `appStore.ts`: `loadCloudData` also fetches and merges agent accounts from cloud (cloud overwrites local agents)
+- `backend.d.ts`: add AgentAccount interface and three new methods to backendInterface
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. Generate minimal Motoko backend: Customer and EMIPayment types matching frontend, stable vars for storage, CRUD functions (addCustomer, getCustomers, deleteCustomer, addEMIPayment, getEMIPayments, updateEMIPayment, deleteEMIPayment)
-2. Create a `cloudSync.ts` utility that wraps backend actor calls
-3. Update `appStore.ts` to call cloud sync after each customer/EMI mutation and load from cloud on init
-4. Add a small sync status indicator to the Header
-5. Keep all other features (line categories, users, reports, settings, Excel export) in local storage unchanged
+1. Update `src/backend/main.mo` — add AgentAccount type and three CRUD functions
+2. Update `src/frontend/src/backend.d.ts` — add AgentAccount interface + three methods
+3. Update `src/frontend/src/utils/cloudSync.ts` — add agent sync/load functions
+4. Update `src/frontend/src/store/appStore.ts` — wire addUser/updateUser/deleteUser to cloud sync; update loadCloudData; add loadAgentsPreLogin
+5. Update `src/frontend/src/App.tsx` — call loadAgentsPreLogin on mount

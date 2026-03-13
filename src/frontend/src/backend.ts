@@ -89,6 +89,10 @@ export class ExternalBlob {
         return this;
     }
 }
+export interface LineCategory {
+    id: string;
+    name: string;
+}
 export interface EMIPayment {
     id: string;
     createdAt: string;
@@ -112,6 +116,12 @@ export interface Customer {
     phone: string;
     lineCategoryId: string;
 }
+export interface AgentAccount {
+    id: string;
+    username: string;
+    password: string;
+    assignedLines: string[];
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -127,7 +137,12 @@ export interface backendInterface {
     getCallerUserRole(): Promise<UserRole>;
     getCustomers(): Promise<Array<Customer>>;
     getEMIPayments(): Promise<Array<EMIPayment>>;
+    getLineCategories(): Promise<Array<LineCategory>>;
     isCallerAdmin(): Promise<boolean>;
+    setLineCategories(categories: Array<LineCategory>): Promise<void>;
+    addOrUpdateAgentAccount(agent: AgentAccount): Promise<void>;
+    deleteAgentAccount(id: string): Promise<void>;
+    getAgentAccounts(): Promise<Array<AgentAccount>>;
 }
 import type { UserRole as _UserRole } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -258,6 +273,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getLineCategories(): Promise<Array<LineCategory>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getLineCategories();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getLineCategories();
+            return result;
+        }
+    }
     async isCallerAdmin(): Promise<boolean> {
         if (this.processError) {
             try {
@@ -271,6 +300,33 @@ export class Backend implements backendInterface {
             const result = await this.actor.isCallerAdmin();
             return result;
         }
+    }
+    async setLineCategories(arg0: Array<LineCategory>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setLineCategories(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setLineCategories(arg0);
+            return result;
+        }
+    }
+    async addOrUpdateAgentAccount(arg0: AgentAccount): Promise<void> {
+        const actor = this.actor as any;
+        if (actor.addOrUpdateAgentAccount) return actor.addOrUpdateAgentAccount(arg0);
+    }
+    async deleteAgentAccount(arg0: string): Promise<void> {
+        const actor = this.actor as any;
+        if (actor.deleteAgentAccount) return actor.deleteAgentAccount(arg0);
+    }
+    async getAgentAccounts(): Promise<Array<AgentAccount>> {
+        const actor = this.actor as any;
+        if (actor.getAgentAccounts) return actor.getAgentAccounts();
+        return [];
     }
 }
 function from_candid_UserRole_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {

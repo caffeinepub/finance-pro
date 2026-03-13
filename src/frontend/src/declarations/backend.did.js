@@ -36,6 +36,7 @@ export const UserRole = IDL.Variant({
   'user' : IDL.Null,
   'guest' : IDL.Null,
 });
+export const LineCategory = IDL.Record({ 'id' : IDL.Text, 'name' : IDL.Text });
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -47,7 +48,9 @@ export const idlService = IDL.Service({
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
   'getEMIPayments' : IDL.Func([], [IDL.Vec(EMIPayment)], ['query']),
+  'getLineCategories' : IDL.Func([], [IDL.Vec(LineCategory)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'setLineCategories' : IDL.Func([IDL.Vec(LineCategory)], [], []),
 });
 
 export const idlInitArgs = [];
@@ -81,6 +84,7 @@ export const idlFactory = ({ IDL }) => {
     'user' : IDL.Null,
     'guest' : IDL.Null,
   });
+  const LineCategory = IDL.Record({ 'id' : IDL.Text, 'name' : IDL.Text });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -92,7 +96,9 @@ export const idlFactory = ({ IDL }) => {
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
     'getEMIPayments' : IDL.Func([], [IDL.Vec(EMIPayment)], ['query']),
+    'getLineCategories' : IDL.Func([], [IDL.Vec(LineCategory)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'setLineCategories' : IDL.Func([IDL.Vec(LineCategory)], [], []),
   });
 };
 

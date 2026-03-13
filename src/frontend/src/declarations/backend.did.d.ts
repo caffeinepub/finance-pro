@@ -33,6 +33,7 @@ export interface EMIPayment {
   'customerId' : string,
   'amount' : number,
 }
+export interface LineCategory { 'id' : string, 'name' : string }
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -46,7 +47,9 @@ export interface _SERVICE {
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCustomers' : ActorMethod<[], Array<Customer>>,
   'getEMIPayments' : ActorMethod<[], Array<EMIPayment>>,
+  'getLineCategories' : ActorMethod<[], Array<LineCategory>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'setLineCategories' : ActorMethod<[Array<LineCategory>], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

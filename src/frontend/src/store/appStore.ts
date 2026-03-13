@@ -1,11 +1,16 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
+  deleteAgentFromCloud,
   deleteCustomerFromCloud,
   deleteEMIFromCloud,
+  loadAgentAccounts,
   loadFromCloud,
+  loadLineCategories,
+  syncAgentToCloud,
   syncCustomerToCloud,
   syncEMIToCloud,
+  syncLineCategoriesToCloud,
 } from "../utils/cloudSync";
 import type {
   AppState,
@@ -82,6 +87,7 @@ interface AppStore extends AppState {
   }) => void;
   // Cloud sync
   loadCloudData: () => Promise<void>;
+  loadAgentsPreLogin: () => Promise<void>;
 }
 
 function fireAndForget(
@@ -92,6 +98,16 @@ function fireAndForget(
   fn()
     .then(() => setSyncStatus("synced"))
     .catch(() => setSyncStatus("error"));
+}
+
+/** Convert a User (agent) to the cloud AgentAccount shape */
+function userToAgentAccount(u: User) {
+  return {
+    id: u.id,
+    username: u.username,
+    password: u.password,
+    assignedLines: u.assignedLines,
+  };
 }
 
 export const useAppStore = create<AppStore>()(
@@ -122,23 +138,38 @@ export const useAppStore = create<AppStore>()(
       logout: () => set({ currentUser: null }),
       setLanguage: (lang) => set({ language: lang }),
 
-      addLineCategory: (name) =>
+      addLineCategory: (name) => {
         set((s) => ({
           lineCategories: [
             ...s.lineCategories,
             { id: crypto.randomUUID(), name },
           ],
-        })),
-      updateLineCategory: (id, name) =>
+        }));
+        fireAndForget(
+          () => syncLineCategoriesToCloud(get().lineCategories),
+          get().setSyncStatus,
+        );
+      },
+      updateLineCategory: (id, name) => {
         set((s) => ({
           lineCategories: s.lineCategories.map((l) =>
             l.id === id ? { ...l, name } : l,
           ),
-        })),
-      deleteLineCategory: (id) =>
+        }));
+        fireAndForget(
+          () => syncLineCategoriesToCloud(get().lineCategories),
+          get().setSyncStatus,
+        );
+      },
+      deleteLineCategory: (id) => {
         set((s) => ({
           lineCategories: s.lineCategories.filter((l) => l.id !== id),
-        })),
+        }));
+        fireAndForget(
+          () => syncLineCategoriesToCloud(get().lineCategories),
+          get().setSyncStatus,
+        );
+      },
 
       addCustomer: (c) => {
         const newCustomer: Customer = {
@@ -165,20 +196,41 @@ export const useAppStore = create<AppStore>()(
         fireAndForget(() => deleteCustomerFromCloud(id), get().setSyncStatus);
       },
 
-      addUser: (u) =>
-        set((s) => ({
-          users: [...s.users, { ...u, id: crypto.randomUUID() }],
-        })),
-      updateUser: (id, u) =>
+      addUser: (u) => {
+        const newUser: User = { ...u, id: crypto.randomUUID() };
+        set((s) => ({ users: [...s.users, newUser] }));
+        // Sync agent accounts to cloud (not admin)
+        if (newUser.role === "agent") {
+          fireAndForget(
+            () => syncAgentToCloud(userToAgentAccount(newUser)),
+            get().setSyncStatus,
+          );
+        }
+      },
+      updateUser: (id, u) => {
         set((s) => ({
           users: s.users.map((x) => (x.id === id ? { ...x, ...u } : x)),
           currentUser:
             s.currentUser?.id === id
               ? { ...s.currentUser, ...u }
               : s.currentUser,
-        })),
-      deleteUser: (id) =>
-        set((s) => ({ users: s.users.filter((x) => x.id !== id) })),
+        }));
+        // Sync if agent
+        const updated = get().users.find((x) => x.id === id);
+        if (updated && updated.role === "agent") {
+          fireAndForget(
+            () => syncAgentToCloud(userToAgentAccount(updated)),
+            get().setSyncStatus,
+          );
+        }
+      },
+      deleteUser: (id) => {
+        const userToDelete = get().users.find((x) => x.id === id);
+        set((s) => ({ users: s.users.filter((x) => x.id !== id) }));
+        if (userToDelete && userToDelete.role === "agent") {
+          fireAndForget(() => deleteAgentFromCloud(id), get().setSyncStatus);
+        }
+      },
 
       addEMIPayment: (e) => {
         const newEMI: EMIPayment = {
@@ -241,12 +293,40 @@ export const useAppStore = create<AppStore>()(
           savedReports: data.savedReports ?? s.savedReports,
         })),
 
+      loadAgentsPreLogin: async () => {
+        try {
+          const remoteAgents = await loadAgentAccounts();
+          if (remoteAgents.length === 0) return;
+          set((s) => {
+            // Keep admin accounts, replace all agents with cloud version
+            const admins = s.users.filter((u) => u.role === "admin");
+            const cloudAgents: User[] = remoteAgents.map((a) => ({
+              id: a.id,
+              username: a.username,
+              password: a.password,
+              role: "agent" as const,
+              assignedLines: a.assignedLines,
+            }));
+            return { users: [...admins, ...cloudAgents] };
+          });
+        } catch {
+          // best-effort
+        }
+      },
+
       loadCloudData: async () => {
         const { setSyncStatus } = get();
         setSyncStatus("syncing");
         try {
-          const { customers: remoteCustomers, emiPayments: remoteEMIs } =
-            await loadFromCloud();
+          const [
+            { customers: remoteCustomers, emiPayments: remoteEMIs },
+            remoteLineCategories,
+            remoteAgents,
+          ] = await Promise.all([
+            loadFromCloud(),
+            loadLineCategories(),
+            loadAgentAccounts(),
+          ]);
 
           set((s) => {
             // Merge customers: remote wins for existing IDs, add new ones
@@ -273,7 +353,41 @@ export const useAppStore = create<AppStore>()(
               }
             }
 
-            return { customers: merged, emiPayments: mergedEMIs };
+            // Line categories: cloud overwrites local if cloud has data
+            const lineCategories =
+              remoteLineCategories.length > 0
+                ? (remoteLineCategories as unknown as LineCategory[])
+                : s.lineCategories;
+
+            // Agents: cloud overwrites local agents (admin stays)
+            const admins = s.users.filter((u) => u.role === "admin");
+            const cloudAgents: User[] =
+              remoteAgents.length > 0
+                ? remoteAgents.map((a) => ({
+                    id: a.id,
+                    username: a.username,
+                    password: a.password,
+                    role: "agent" as const,
+                    assignedLines: a.assignedLines,
+                  }))
+                : s.users.filter((u) => u.role === "agent");
+
+            // Update currentUser if it's an agent that was updated
+            let updatedCurrentUser = s.currentUser;
+            if (s.currentUser && s.currentUser.role === "agent") {
+              const refreshed = cloudAgents.find(
+                (a) => a.id === s.currentUser?.id,
+              );
+              if (refreshed) updatedCurrentUser = refreshed;
+            }
+
+            return {
+              customers: merged,
+              emiPayments: mergedEMIs,
+              lineCategories,
+              users: [...admins, ...cloudAgents],
+              currentUser: updatedCurrentUser,
+            };
           });
 
           setSyncStatus("synced");

@@ -1,10 +1,13 @@
 import Map "mo:core/Map";
 import Text "mo:core/Text";
-import Prim "mo:prim";
-import Runtime "mo:core/Runtime";
+import Iter "mo:core/Iter";
 import AccessControl "./authorization/access-control";
+import MixinAuthorization "authorization/MixinAuthorization";
 
-actor Backend {
+
+
+actor {
+  // Import existing types
   type Customer = {
     id : Text;
     serialNumber : Text;
@@ -30,43 +33,36 @@ actor Backend {
     createdAt : Text;
   };
 
+  type LineCategory = {
+    id : Text;
+    name : Text;
+  };
+
+  type AgentAccount = {
+    id : Text;
+    username : Text;
+    password : Text;
+    assignedLines : [Text];
+  };
+
   let accessControlState = AccessControl.initState();
-
-  public shared ({ caller }) func _initializeAccessControlWithSecret(userSecret : Text) : async () {
-    switch (Prim.envVar<system>("CAFFEINE_ADMIN_TOKEN")) {
-      case (null) {
-        Runtime.trap("CAFFEINE_ADMIN_TOKEN environment variable is not set");
-      };
-      case (?adminToken) {
-        AccessControl.initialize(accessControlState, caller, adminToken, userSecret);
-      };
-    };
-  };
-
-  public query ({ caller }) func getCallerUserRole() : async AccessControl.UserRole {
-    AccessControl.getUserRole(accessControlState, caller);
-  };
-
-  public shared ({ caller }) func assignCallerUserRole(user : Principal, role : AccessControl.UserRole) : async () {
-    AccessControl.assignRole(accessControlState, caller, user, role);
-  };
-
-  public query ({ caller }) func isCallerAdmin() : async Bool {
-    AccessControl.isAdmin(accessControlState, caller);
-  };
+  include MixinAuthorization(accessControlState);
 
   let customersMap = Map.empty<Text, Customer>();
   let emiPaymentsMap = Map.empty<Text, EMIPayment>();
+  let lineCategoriesMap = Map.empty<Text, LineCategory>();
+  let agentAccountsMap = Map.empty<Text, AgentAccount>();
 
-  public func addOrUpdateCustomer(customer : Customer) : async () {
+  // Customer Management
+  public shared ({ caller }) func addOrUpdateCustomer(customer : Customer) : async () {
     customersMap.add(customer.id, customer);
   };
 
-  public query func getCustomers() : async [Customer] {
+  public query ({ caller }) func getCustomers() : async [Customer] {
     customersMap.values().toArray();
   };
 
-  public func deleteCustomer(id : Text) : async () {
+  public shared ({ caller }) func deleteCustomer(id : Text) : async () {
     customersMap.remove(id);
     // Remove associated EMI payments
     let toRemove = Map.empty<Text, Bool>();
@@ -80,15 +76,41 @@ actor Backend {
     };
   };
 
-  public func addOrUpdateEMIPayment(payment : EMIPayment) : async () {
+  // EMI Payments Management
+  public shared ({ caller }) func addOrUpdateEMIPayment(payment : EMIPayment) : async () {
     emiPaymentsMap.add(payment.id, payment);
   };
 
-  public query func getEMIPayments() : async [EMIPayment] {
+  public query ({ caller }) func getEMIPayments() : async [EMIPayment] {
     emiPaymentsMap.values().toArray();
   };
 
-  public func deleteEMIPayment(paymentId : Text) : async () {
+  public shared ({ caller }) func deleteEMIPayment(paymentId : Text) : async () {
     emiPaymentsMap.remove(paymentId);
   };
-}
+
+  // Line Categories Management
+  public shared ({ caller }) func setLineCategories(categories : [LineCategory]) : async () {
+    lineCategoriesMap.clear();
+    for (category in categories.values()) {
+      lineCategoriesMap.add(category.id, category);
+    };
+  };
+
+  public query ({ caller }) func getLineCategories() : async [LineCategory] {
+    lineCategoriesMap.values().toArray();
+  };
+
+  // Agent Accounts Management
+  public shared ({ caller }) func addOrUpdateAgentAccount(agent : AgentAccount) : async () {
+    agentAccountsMap.add(agent.id, agent);
+  };
+
+  public query ({ caller }) func getAgentAccounts() : async [AgentAccount] {
+    agentAccountsMap.values().toArray();
+  };
+
+  public shared ({ caller }) func deleteAgentAccount(id : Text) : async () {
+    agentAccountsMap.remove(id);
+  };
+};
