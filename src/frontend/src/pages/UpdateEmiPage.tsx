@@ -64,7 +64,7 @@ export default function UpdateEmiPage() {
       toast.error("Enter valid amount");
       return;
     }
-    if (!isAdmin && date !== today) {
+    if (date !== today) {
       toast.error(t.invalidDate);
       return;
     }
@@ -197,7 +197,6 @@ export default function UpdateEmiPage() {
                   <Label className="text-xs">{t.amount}</Label>
                   <Input
                     type="number"
-                    placeholder="5000"
                     value={amount}
                     onChange={(e) => setAmount(e.target.value)}
                     data-ocid="update_emi.amount_input"
@@ -209,8 +208,8 @@ export default function UpdateEmiPage() {
                     type="date"
                     value={date}
                     onChange={(e) => setDate(e.target.value)}
-                    readOnly={!isAdmin}
-                    disabled={!isAdmin}
+                    readOnly={true}
+                    disabled={true}
                     data-ocid="update_emi.date_input"
                   />
                 </div>
