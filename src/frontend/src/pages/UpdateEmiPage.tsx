@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Check, Pencil, X } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAlert } from "../components/AlertPopup";
 import { useAppStore } from "../store/appStore";
 import {
   loanRepayAmount,
@@ -26,6 +26,7 @@ export default function UpdateEmiPage() {
     currentUser,
   } = useAppStore();
   const t = labels[language];
+  const { showAlert, AlertComponent } = useAlert(language);
   const today = new Date().toISOString().split("T")[0];
   const isAdmin = currentUser?.role === "admin";
   const isAgent = currentUser?.role === "agent";
@@ -38,7 +39,6 @@ export default function UpdateEmiPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
 
-  // Agents see only customers from their assigned lines
   const accessibleCustomers = isAgent
     ? customers.filter((c) => assignedLines.includes(c.lineCategoryId))
     : customers;
@@ -61,18 +61,18 @@ export default function UpdateEmiPage() {
   const handleSave = () => {
     if (!selected) return;
     if (!amount || Number(amount) <= 0) {
-      toast.error("Enter valid amount");
+      showAlert(t.enterValidAmount, "error");
       return;
     }
     if (date !== today) {
-      toast.error(t.invalidDate);
+      showAlert(t.invalidDate, "error");
       return;
     }
     const exists = emiPayments.find(
       (e) => e.customerId === selected.id && e.paymentDate === date,
     );
     if (exists) {
-      toast.error(t.alreadyPaid);
+      showAlert(t.alreadyPaid, "error");
       return;
     }
     addEMIPayment({
@@ -81,7 +81,7 @@ export default function UpdateEmiPage() {
       paymentDate: date,
       recordedBy: currentUser?.username ?? "admin",
     });
-    toast.success(t.emiSaved);
+    showAlert(t.emiSaved, "success");
     setAmount("");
   };
 
@@ -93,11 +93,12 @@ export default function UpdateEmiPage() {
   const handleEditSave = (id: string) => {
     updateEMIPayment(id, Number(editAmount));
     setEditId(null);
-    toast.success("EMI updated");
+    showAlert(t.emiUpdated, "success");
   };
 
   return (
     <div data-ocid="update_emi.page" className="space-y-4">
+      {AlertComponent}
       <h2 className="text-lg font-bold">{t.updateEmi}</h2>
       <div className="space-y-1">
         <Label className="text-xs">{t.searchCustomer}</Label>

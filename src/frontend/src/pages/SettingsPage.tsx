@@ -1,12 +1,32 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ArrowLeft, Check, Pencil, Plus, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import {
+  ArrowLeft,
+  Check,
+  Download,
+  Pencil,
+  Plus,
+  Trash2,
+  Upload,
+  X,
+} from "lucide-react";
+import { useRef, useState } from "react";
 import { toast } from "sonner";
+import { useAlert } from "../components/AlertPopup";
 import { useAppStore } from "../store/appStore";
 import { labels } from "../store/labels";
 import { User } from "../store/types";
@@ -17,9 +37,21 @@ interface Props {
 
 export default function SettingsPage({ onClose }: Props) {
   const store = useAppStore();
-  const { currentUser, users, lineCategories, language } = store;
+  const {
+    currentUser,
+    users,
+    lineCategories,
+    language,
+    customers,
+    emiPayments,
+    reportCustomFields,
+    restoreFromBackup,
+  } = store;
   const t = labels[language];
   const isAdmin = currentUser?.role === "admin";
+  const { showAlert, AlertComponent } = useAlert(language);
+
+  const today = new Date().toISOString().split("T")[0];
 
   // Change password
   const [cp, setCp] = useState({ current: "", newP: "", confirm: "" });
@@ -39,6 +71,83 @@ export default function SettingsPage({ onClose }: Props) {
   );
   const [newLine, setNewLine] = useState("");
   const [showAddLine, setShowAddLine] = useState(false);
+
+  // Backup / Restore
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
+  const [pendingRestoreData, setPendingRestoreData] = useState<any>(null);
+
+  const handleDownloadBackup = () => {
+    const backupData = {
+      version: "1.0",
+      exportedAt: new Date().toISOString(),
+      data: {
+        customers,
+        emiPayments,
+        lineCategories,
+        users: users.map((u) => ({ ...u, password: undefined })),
+        reportCustomFields,
+      },
+    };
+    const blob = new Blob([JSON.stringify(backupData, null, 2)], {
+      type: "application/json",
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `finance-pro-backup-${today}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showAlert(
+      language === "ta"
+        ? "பேக்கப் கோப்பு பதிவிறக்கம் செய்யப்பட்டது"
+        : "Backup downloaded successfully",
+      "success",
+    );
+  };
+
+  const handleRestoreClick = () => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      try {
+        const parsed = JSON.parse(evt.target?.result as string);
+        if (!parsed?.data?.customers) {
+          showAlert(t.invalidBackupFile, "error");
+          return;
+        }
+        setPendingRestoreData(parsed.data);
+        setRestoreDialogOpen(true);
+      } catch {
+        showAlert(t.backupReadError, "error");
+      }
+    };
+    reader.onerror = () => {
+      showAlert(t.backupReadError, "error");
+    };
+    reader.readAsText(file);
+  };
+
+  const handleConfirmRestore = () => {
+    if (!pendingRestoreData) return;
+    restoreFromBackup({
+      customers: pendingRestoreData.customers,
+      emiPayments: pendingRestoreData.emiPayments,
+      lineCategories: pendingRestoreData.lineCategories,
+      reportCustomFields: pendingRestoreData.reportCustomFields,
+    });
+    setPendingRestoreData(null);
+    setRestoreDialogOpen(false);
+    showAlert(t.backupRestored, "success");
+  };
 
   const handleChangePw = () => {
     if (!currentUser) return;
@@ -136,6 +245,42 @@ export default function SettingsPage({ onClose }: Props) {
 
   return (
     <div data-ocid="settings.page" className="space-y-4">
+      {AlertComponent}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept=".json"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+
+      <AlertDialog open={restoreDialogOpen} onOpenChange={setRestoreDialogOpen}>
+        <AlertDialogContent data-ocid="settings.restore_dialog">
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === "ta" ? "தரவை மீட்டமைக்கவா?" : "Restore Backup?"}
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              {language === "ta"
+                ? "இது தற்போதைய அனைத்து வாடிக்கையாளர் மற்றும் EMI தரவையும் பேக்கப்பிலிருந்து மாற்றும். இதை செயல்தவிர்க்க முடியாது. தொடர வேண்டுமா?"
+                : "This will replace all existing customer and EMI data with the backup. This cannot be undone. Are you sure?"}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel data-ocid="settings.restore_cancel_button">
+              {t.cancel}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              data-ocid="settings.restore_confirm_button"
+              onClick={handleConfirmRestore}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {language === "ta" ? "மீட்டமை" : "Restore"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -165,7 +310,44 @@ export default function SettingsPage({ onClose }: Props) {
         </TabsList>
 
         {/* GENERAL */}
-        <TabsContent value="general" className="mt-3">
+        <TabsContent value="general" className="mt-3 space-y-4">
+          {/* Backup & Restore */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">
+                {language === "ta" ? "பேக்கப் & மீட்டமை" : "Backup & Restore"}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={handleDownloadBackup}
+                data-ocid="settings.backup_button"
+              >
+                <Download className="h-4 w-4 mr-2" />
+                {language === "ta" ? "பேக்கப் பதிவிறக்கம்" : "Download Backup"}
+              </Button>
+              <Button
+                className="w-full"
+                variant="outline"
+                onClick={handleRestoreClick}
+                data-ocid="settings.restore_button"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                {language === "ta"
+                  ? "பேக்கப்பிலிருந்து மீட்டமை"
+                  : "Restore from Backup"}
+              </Button>
+              <p className="text-xs text-muted-foreground">
+                {language === "ta"
+                  ? "💡 பேக்கப் கோப்பை Google Drive இல் பதிவேற்றவும்: drive.google.com → புதியது → கோப்பு பதிவேற்றம்."
+                  : "💡 To save to Google Drive: tap Backup → upload the file at drive.google.com → New → File upload."}
+              </p>
+            </CardContent>
+          </Card>
+
+          {/* Change Password */}
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm">{t.changePassword}</CardTitle>

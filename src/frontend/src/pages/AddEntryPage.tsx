@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useState } from "react";
-import { toast } from "sonner";
+import { useAlert } from "../components/AlertPopup";
 import { useAppStore } from "../store/appStore";
 import { loanRepayAmount } from "../store/calculations";
 import { labels } from "../store/labels";
@@ -23,11 +23,11 @@ interface Props {
 export default function AddEntryPage({ onSuccess }: Props) {
   const { lineCategories, addCustomer, language, currentUser } = useAppStore();
   const t = labels[language];
+  const { showAlert, AlertComponent } = useAlert(language);
 
   const isAgent = currentUser?.role === "agent";
   const assignedLines = currentUser?.assignedLines ?? [];
 
-  // Agents can only add customers to their assigned lines
   const visibleLineCategories = isAgent
     ? lineCategories.filter((l) => assignedLines.includes(l.id))
     : lineCategories;
@@ -61,7 +61,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
       !form.loanAmount ||
       !form.lineCategoryId
     ) {
-      toast.error("Please fill all required fields");
+      showAlert(t.fillRequired, "error");
       return;
     }
     addCustomer({
@@ -76,7 +76,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
       lineCategoryId: form.lineCategoryId,
       isActive: true,
     });
-    toast.success("Customer added successfully");
+    showAlert(t.customerAdded, "success");
     setForm({
       serialNumber: "",
       name: "",
@@ -99,6 +99,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
 
   return (
     <div data-ocid="add_entry.page">
+      {AlertComponent}
       <h2 className="text-lg font-bold mb-4">{t.addEntry}</h2>
       <Card>
         <CardHeader className="pb-2">
