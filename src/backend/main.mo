@@ -148,7 +148,7 @@ actor {
     emiPaymentsMap.remove(paymentId);
   };
 
-  // Line Categories Management
+  // Line Categories Management — bulk replace (admin overwrites all)
   public shared func setLineCategories(categories : [LineCategory]) : async () {
     lineCategoriesMap := Map.empty();
     for (category in categories.vals()) {
@@ -160,17 +160,16 @@ actor {
     lineCategoriesMap.values().toArray();
   };
 
-  // Agent Accounts Management
-  public shared func addOrUpdateAgentAccount(agent : AgentAccount) : async () {
-    agentAccountsMap.add(agent.id, agent);
+  // Agent Accounts Management — bulk replace (same pattern as line categories)
+  public shared func setAgentAccounts(agents : [AgentAccount]) : async () {
+    agentAccountsMap := Map.empty();
+    for (agent in agents.vals()) {
+      agentAccountsMap.add(agent.id, agent);
+    };
   };
 
   public query func getAgentAccounts() : async [AgentAccount] {
     agentAccountsMap.values().toArray();
-  };
-
-  public shared func deleteAgentAccount(id : Text) : async () {
-    agentAccountsMap.remove(id);
   };
 
   // Saved Reports Management

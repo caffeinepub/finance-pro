@@ -148,12 +148,10 @@ export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     addOrUpdateCustomer(customer: Customer): Promise<void>;
     addOrUpdateEMIPayment(payment: EMIPayment): Promise<void>;
-    addOrUpdateAgentAccount(agent: AgentAccount): Promise<void>;
     addOrUpdateSavedReport(report: CloudSavedReport): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     deleteCustomer(id: string): Promise<void>;
     deleteEMIPayment(paymentId: string): Promise<void>;
-    deleteAgentAccount(id: string): Promise<void>;
     deleteSavedReport(key: string): Promise<void>;
     getCallerUserRole(): Promise<UserRole>;
     getCustomers(): Promise<Array<Customer>>;
@@ -163,6 +161,7 @@ export interface backendInterface {
     getSavedReports(): Promise<Array<CloudSavedReport>>;
     isCallerAdmin(): Promise<boolean>;
     setLineCategories(categories: Array<LineCategory>): Promise<void>;
+    setAgentAccounts(agents: Array<AgentAccount>): Promise<void>;
 }
 import type { UserRole as _UserRole, AgentAccount as _AgentAccount } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -206,20 +205,6 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.addOrUpdateEMIPayment(arg0);
-            return result;
-        }
-    }
-    async addOrUpdateAgentAccount(arg0: AgentAccount): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.addOrUpdateAgentAccount(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.addOrUpdateAgentAccount(arg0);
             return result;
         }
     }
@@ -276,20 +261,6 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deleteEMIPayment(arg0);
-            return result;
-        }
-    }
-    async deleteAgentAccount(arg0: string): Promise<void> {
-        if (this.processError) {
-            try {
-                const result = await this.actor.deleteAgentAccount(arg0);
-                return result;
-            } catch (e) {
-                this.processError(e);
-                throw new Error("unreachable");
-            }
-        } else {
-            const result = await this.actor.deleteAgentAccount(arg0);
             return result;
         }
     }
@@ -416,6 +387,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.setLineCategories(arg0);
+            return result;
+        }
+    }
+    async setAgentAccounts(arg0: Array<AgentAccount>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setAgentAccounts(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setAgentAccounts(arg0);
             return result;
         }
     }

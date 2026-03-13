@@ -65,12 +65,10 @@ export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addOrUpdateCustomer' : IDL.Func([Customer], [], []),
   'addOrUpdateEMIPayment' : IDL.Func([EMIPayment], [], []),
-  'addOrUpdateAgentAccount' : IDL.Func([AgentAccount], [], []),
   'addOrUpdateSavedReport' : IDL.Func([SavedReport], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'deleteCustomer' : IDL.Func([IDL.Text], [], []),
   'deleteEMIPayment' : IDL.Func([IDL.Text], [], []),
-  'deleteAgentAccount' : IDL.Func([IDL.Text], [], []),
   'deleteSavedReport' : IDL.Func([IDL.Text], [], []),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
@@ -80,6 +78,7 @@ export const idlService = IDL.Service({
   'getSavedReports' : IDL.Func([], [IDL.Vec(SavedReport)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'setLineCategories' : IDL.Func([IDL.Vec(LineCategory)], [], []),
+  'setAgentAccounts' : IDL.Func([IDL.Vec(AgentAccount)], [], []),
 });
 
 export const idlInitArgs = [];
@@ -142,12 +141,10 @@ export const idlFactory = ({ IDL }) => {
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addOrUpdateCustomer' : IDL.Func([Customer], [], []),
     'addOrUpdateEMIPayment' : IDL.Func([EMIPayment], [], []),
-    'addOrUpdateAgentAccount' : IDL.Func([AgentAccount], [], []),
     'addOrUpdateSavedReport' : IDL.Func([SavedReport], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'deleteCustomer' : IDL.Func([IDL.Text], [], []),
     'deleteEMIPayment' : IDL.Func([IDL.Text], [], []),
-    'deleteAgentAccount' : IDL.Func([IDL.Text], [], []),
     'deleteSavedReport' : IDL.Func([IDL.Text], [], []),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
@@ -157,6 +154,7 @@ export const idlFactory = ({ IDL }) => {
     'getSavedReports' : IDL.Func([], [IDL.Vec(SavedReport)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'setLineCategories' : IDL.Func([IDL.Vec(LineCategory)], [], []),
+    'setAgentAccounts' : IDL.Func([IDL.Vec(AgentAccount)], [], []),
   });
 };
 

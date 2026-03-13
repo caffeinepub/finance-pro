@@ -1,7 +1,6 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
-  deleteAgentFromCloud,
   deleteCustomerFromCloud,
   deleteEMIFromCloud,
   deleteSavedReportFromCloud,
@@ -9,7 +8,7 @@ import {
   loadFromCloud,
   loadLineCategories,
   loadSavedReports,
-  syncAgentToCloud,
+  syncAllAgentsToCloud,
   syncCustomerToCloud,
   syncEMIToCloud,
   syncLineCategoriesToCloud,
@@ -32,13 +31,6 @@ const defaultUsers: User[] = [
     password: "admin123",
     role: "admin",
     assignedLines: [],
-  },
-  {
-    id: "u2",
-    username: "agent1",
-    password: "agent123",
-    role: "agent",
-    assignedLines: ["lc1", "lc2"],
   },
 ];
 
@@ -202,10 +194,13 @@ export const useAppStore = create<AppStore>()(
       addUser: (u) => {
         const newUser: User = { ...u, id: crypto.randomUUID() };
         set((s) => ({ users: [...s.users, newUser] }));
-        // Sync agent accounts to cloud (not admin)
+        // Bulk-sync all agents to cloud (same pattern as line categories)
         if (newUser.role === "agent") {
+          const allAgents = get()
+            .users.filter((x) => x.role === "agent")
+            .map(userToAgentAccount);
           fireAndForget(
-            () => syncAgentToCloud(userToAgentAccount(newUser)),
+            () => syncAllAgentsToCloud(allAgents),
             get().setSyncStatus,
           );
         }
@@ -218,11 +213,14 @@ export const useAppStore = create<AppStore>()(
               ? { ...s.currentUser, ...u }
               : s.currentUser,
         }));
-        // Sync if agent
-        const updated = get().users.find((x) => x.id === id);
-        if (updated && updated.role === "agent") {
+        // Bulk-sync all agents to cloud after any agent update
+        const updatedUser = get().users.find((x) => x.id === id);
+        if (updatedUser && updatedUser.role === "agent") {
+          const allAgents = get()
+            .users.filter((x) => x.role === "agent")
+            .map(userToAgentAccount);
           fireAndForget(
-            () => syncAgentToCloud(userToAgentAccount(updated)),
+            () => syncAllAgentsToCloud(allAgents),
             get().setSyncStatus,
           );
         }
@@ -231,7 +229,14 @@ export const useAppStore = create<AppStore>()(
         const userToDelete = get().users.find((x) => x.id === id);
         set((s) => ({ users: s.users.filter((x) => x.id !== id) }));
         if (userToDelete && userToDelete.role === "agent") {
-          fireAndForget(() => deleteAgentFromCloud(id), get().setSyncStatus);
+          // Bulk-sync remaining agents (without the deleted one)
+          const allAgents = get()
+            .users.filter((x) => x.role === "agent")
+            .map(userToAgentAccount);
+          fireAndForget(
+            () => syncAllAgentsToCloud(allAgents),
+            get().setSyncStatus,
+          );
         }
       },
 
@@ -407,7 +412,6 @@ export const useAppStore = create<AppStore>()(
             }
 
             // Saved reports: cloud overwrites local (last-write-wins by lineName+reportDate)
-            // Cloud is authoritative; replace local with cloud data
             const savedReports =
               remoteSavedReports.length > 0
                 ? remoteSavedReports

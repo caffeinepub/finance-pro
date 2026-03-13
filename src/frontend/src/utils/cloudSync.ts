@@ -74,19 +74,13 @@ export async function loadLineCategories(): Promise<LineCategory[]> {
   }
 }
 
-export async function syncAgentToCloud(agent: AgentAccount): Promise<void> {
+// Agent Accounts — bulk replace, same pattern as line categories
+export async function syncAllAgentsToCloud(
+  agents: AgentAccount[],
+): Promise<void> {
   try {
     const actor = await getActor();
-    await actor.addOrUpdateAgentAccount(agent);
-  } catch {
-    // best-effort; silently swallow
-  }
-}
-
-export async function deleteAgentFromCloud(id: string): Promise<void> {
-  try {
-    const actor = await getActor();
-    await actor.deleteAgentAccount(id);
+    await actor.setAgentAccounts(agents);
   } catch {
     // best-effort; silently swallow
   }

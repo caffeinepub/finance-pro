@@ -179,8 +179,9 @@ export default function ReportsPage() {
     showAlert(t.reportSaved, "success");
   };
 
+  const assignedLineNames = visibleLineCategories.map((l) => l.name);
   const visibleSavedReports = isAgent
-    ? savedReports.filter((r) => r.savedBy === currentUser?.username)
+    ? savedReports.filter((r) => assignedLineNames.includes(r.lineName))
     : savedReports;
 
   return (

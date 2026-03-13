@@ -64,12 +64,10 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addOrUpdateCustomer' : ActorMethod<[Customer], undefined>,
   'addOrUpdateEMIPayment' : ActorMethod<[EMIPayment], undefined>,
-  'addOrUpdateAgentAccount' : ActorMethod<[AgentAccount], undefined>,
   'addOrUpdateSavedReport' : ActorMethod<[CloudSavedReport], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'deleteCustomer' : ActorMethod<[string], undefined>,
   'deleteEMIPayment' : ActorMethod<[string], undefined>,
-  'deleteAgentAccount' : ActorMethod<[string], undefined>,
   'deleteSavedReport' : ActorMethod<[string], undefined>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCustomers' : ActorMethod<[], Array<Customer>>,
@@ -79,6 +77,7 @@ export interface _SERVICE {
   'getSavedReports' : ActorMethod<[], Array<CloudSavedReport>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'setLineCategories' : ActorMethod<[Array<LineCategory>], undefined>,
+  'setAgentAccounts' : ActorMethod<[Array<AgentAccount>], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];
