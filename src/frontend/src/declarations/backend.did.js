@@ -37,18 +37,47 @@ export const UserRole = IDL.Variant({
   'guest' : IDL.Null,
 });
 export const LineCategory = IDL.Record({ 'id' : IDL.Text, 'name' : IDL.Text });
+export const AgentAccount = IDL.Record({
+  'id' : IDL.Text,
+  'username' : IDL.Text,
+  'password' : IDL.Text,
+  'assignedLines' : IDL.Vec(IDL.Text),
+});
+export const SavedReport = IDL.Record({
+  'id' : IDL.Text,
+  'reportDate' : IDL.Text,
+  'lineName' : IDL.Text,
+  'preAmount' : IDL.Float64,
+  'collection' : IDL.Float64,
+  'loanFee' : IDL.Float64,
+  'lending' : IDL.Float64,
+  'expense' : IDL.Float64,
+  'dynLeftJson' : IDL.Text,
+  'dynRightJson' : IDL.Text,
+  'leftTotal' : IDL.Float64,
+  'rightTotal' : IDL.Float64,
+  'reminder' : IDL.Float64,
+  'savedAt' : IDL.Text,
+  'savedBy' : IDL.Text,
+});
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
   'addOrUpdateCustomer' : IDL.Func([Customer], [], []),
   'addOrUpdateEMIPayment' : IDL.Func([EMIPayment], [], []),
+  'addOrUpdateAgentAccount' : IDL.Func([AgentAccount], [], []),
+  'addOrUpdateSavedReport' : IDL.Func([SavedReport], [], []),
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'deleteCustomer' : IDL.Func([IDL.Text], [], []),
   'deleteEMIPayment' : IDL.Func([IDL.Text], [], []),
+  'deleteAgentAccount' : IDL.Func([IDL.Text], [], []),
+  'deleteSavedReport' : IDL.Func([IDL.Text], [], []),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
   'getEMIPayments' : IDL.Func([], [IDL.Vec(EMIPayment)], ['query']),
+  'getAgentAccounts' : IDL.Func([], [IDL.Vec(AgentAccount)], ['query']),
   'getLineCategories' : IDL.Func([], [IDL.Vec(LineCategory)], ['query']),
+  'getSavedReports' : IDL.Func([], [IDL.Vec(SavedReport)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'setLineCategories' : IDL.Func([IDL.Vec(LineCategory)], [], []),
 });
@@ -85,18 +114,47 @@ export const idlFactory = ({ IDL }) => {
     'guest' : IDL.Null,
   });
   const LineCategory = IDL.Record({ 'id' : IDL.Text, 'name' : IDL.Text });
+  const AgentAccount = IDL.Record({
+    'id' : IDL.Text,
+    'username' : IDL.Text,
+    'password' : IDL.Text,
+    'assignedLines' : IDL.Vec(IDL.Text),
+  });
+  const SavedReport = IDL.Record({
+    'id' : IDL.Text,
+    'reportDate' : IDL.Text,
+    'lineName' : IDL.Text,
+    'preAmount' : IDL.Float64,
+    'collection' : IDL.Float64,
+    'loanFee' : IDL.Float64,
+    'lending' : IDL.Float64,
+    'expense' : IDL.Float64,
+    'dynLeftJson' : IDL.Text,
+    'dynRightJson' : IDL.Text,
+    'leftTotal' : IDL.Float64,
+    'rightTotal' : IDL.Float64,
+    'reminder' : IDL.Float64,
+    'savedAt' : IDL.Text,
+    'savedBy' : IDL.Text,
+  });
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
     'addOrUpdateCustomer' : IDL.Func([Customer], [], []),
     'addOrUpdateEMIPayment' : IDL.Func([EMIPayment], [], []),
+    'addOrUpdateAgentAccount' : IDL.Func([AgentAccount], [], []),
+    'addOrUpdateSavedReport' : IDL.Func([SavedReport], [], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'deleteCustomer' : IDL.Func([IDL.Text], [], []),
     'deleteEMIPayment' : IDL.Func([IDL.Text], [], []),
+    'deleteAgentAccount' : IDL.Func([IDL.Text], [], []),
+    'deleteSavedReport' : IDL.Func([IDL.Text], [], []),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
     'getEMIPayments' : IDL.Func([], [IDL.Vec(EMIPayment)], ['query']),
+    'getAgentAccounts' : IDL.Func([], [IDL.Vec(AgentAccount)], ['query']),
     'getLineCategories' : IDL.Func([], [IDL.Vec(LineCategory)], ['query']),
+    'getSavedReports' : IDL.Func([], [IDL.Vec(SavedReport)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'setLineCategories' : IDL.Func([IDL.Vec(LineCategory)], [], []),
   });

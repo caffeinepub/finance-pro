@@ -34,6 +34,29 @@ export interface EMIPayment {
   'amount' : number,
 }
 export interface LineCategory { 'id' : string, 'name' : string }
+export interface AgentAccount {
+  'id' : string,
+  'username' : string,
+  'password' : string,
+  'assignedLines' : Array<string>,
+}
+export interface CloudSavedReport {
+  'id' : string,
+  'reportDate' : string,
+  'lineName' : string,
+  'preAmount' : number,
+  'collection' : number,
+  'loanFee' : number,
+  'lending' : number,
+  'expense' : number,
+  'dynLeftJson' : string,
+  'dynRightJson' : string,
+  'leftTotal' : number,
+  'rightTotal' : number,
+  'reminder' : number,
+  'savedAt' : string,
+  'savedBy' : string,
+}
 export type UserRole = { 'admin' : null } |
   { 'user' : null } |
   { 'guest' : null };
@@ -41,13 +64,19 @@ export interface _SERVICE {
   '_initializeAccessControlWithSecret' : ActorMethod<[string], undefined>,
   'addOrUpdateCustomer' : ActorMethod<[Customer], undefined>,
   'addOrUpdateEMIPayment' : ActorMethod<[EMIPayment], undefined>,
+  'addOrUpdateAgentAccount' : ActorMethod<[AgentAccount], undefined>,
+  'addOrUpdateSavedReport' : ActorMethod<[CloudSavedReport], undefined>,
   'assignCallerUserRole' : ActorMethod<[Principal, UserRole], undefined>,
   'deleteCustomer' : ActorMethod<[string], undefined>,
   'deleteEMIPayment' : ActorMethod<[string], undefined>,
+  'deleteAgentAccount' : ActorMethod<[string], undefined>,
+  'deleteSavedReport' : ActorMethod<[string], undefined>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCustomers' : ActorMethod<[], Array<Customer>>,
   'getEMIPayments' : ActorMethod<[], Array<EMIPayment>>,
+  'getAgentAccounts' : ActorMethod<[], Array<AgentAccount>>,
   'getLineCategories' : ActorMethod<[], Array<LineCategory>>,
+  'getSavedReports' : ActorMethod<[], Array<CloudSavedReport>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'setLineCategories' : ActorMethod<[Array<LineCategory>], undefined>,
 }

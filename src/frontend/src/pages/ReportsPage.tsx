@@ -46,10 +46,11 @@ export default function ReportsPage() {
     ? lineCategories.filter((l) => assignedLines.includes(l.id))
     : lineCategories;
 
+  const defaultLineId =
+    visibleLineCategories.length > 0 ? visibleLineCategories[0].id : "";
+
   const [reportDate, setReportDate] = useState(today);
-  const [lineId, setLineId] = useState(
-    isAgent && assignedLines.length > 0 ? assignedLines[0] : "all",
-  );
+  const [lineId, setLineId] = useState(defaultLineId);
   const [preAmount, setPreAmount] = useState("");
   const [expense, setExpense] = useState("");
   const [dynLeft, setDynLeft] = useState<DynField[]>([]);
@@ -57,14 +58,9 @@ export default function ReportsPage() {
   const [viewReport, setViewReport] = useState<SavedReport | null>(null);
 
   const filteredCustomers = useMemo(() => {
-    const linesToFilter = isAgent ? assignedLines : null;
     return customers.filter((c) => {
-      if (linesToFilter && !linesToFilter.includes(c.lineCategoryId))
-        return false;
-      if (!isAgent && lineId !== "all" && c.lineCategoryId !== lineId)
-        return false;
-      if (isAgent && lineId !== "all" && c.lineCategoryId !== lineId)
-        return false;
+      if (isAgent && !assignedLines.includes(c.lineCategoryId)) return false;
+      if (lineId && c.lineCategoryId !== lineId) return false;
       return true;
     });
   }, [customers, lineId, isAgent, assignedLines]);
@@ -119,11 +115,13 @@ export default function ReportsPage() {
   const updateDynRight = (id: string, k: "label" | "value", v: string) =>
     setDynRight((f) => f.map((x) => (x.id === id ? { ...x, [k]: v } : x)));
 
+  const currentLineName =
+    lineCategories.find((l) => l.id === lineId)?.name ?? lineId;
+
   const handleExport = () => {
-    const lineName = lineCategories.find((l) => l.id === lineId)?.name ?? "All";
     const data: Record<string, number | string> = {
       Date: reportDate,
-      Line: lineName,
+      Line: currentLineName,
       [t.preAmount]: Number(preAmount) || 0,
       [t.collection]: collection,
       [t.loanFee]: loanFee,
@@ -140,7 +138,7 @@ export default function ReportsPage() {
     exportReport(
       data,
       reportDate,
-      lineName,
+      currentLineName,
       filteredCustomers,
       lineCategories,
       filteredEmis,
@@ -148,10 +146,18 @@ export default function ReportsPage() {
   };
 
   const handleSaveReport = () => {
-    const lineName = lineCategories.find((l) => l.id === lineId)?.name ?? "All";
+    // Check for duplicate: same line + same date
+    const duplicate = savedReports.some(
+      (r) => r.reportDate === reportDate && r.lineName === currentLineName,
+    );
+    if (duplicate) {
+      showAlert(t.reportAlreadySaved, "error");
+      return;
+    }
+
     saveReport({
       reportDate,
-      lineName,
+      lineName: currentLineName,
       preAmount: Number(preAmount) || 0,
       collection,
       loanFee,
@@ -220,7 +226,6 @@ export default function ReportsPage() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {!isAgent && <SelectItem value="all">{t.all}</SelectItem>}
                   {visibleLineCategories.map((l) => (
                     <SelectItem key={l.id} value={l.id}>
                       {l.name}

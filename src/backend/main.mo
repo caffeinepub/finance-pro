@@ -1,13 +1,9 @@
 import Map "mo:core/Map";
 import Text "mo:core/Text";
-import Iter "mo:core/Iter";
 import AccessControl "./authorization/access-control";
 import MixinAuthorization "authorization/MixinAuthorization";
 
-
-
 actor {
-  // Import existing types
   type Customer = {
     id : Text;
     serialNumber : Text;
@@ -45,26 +41,89 @@ actor {
     assignedLines : [Text];
   };
 
+  type SavedReport = {
+    id : Text;
+    reportDate : Text;
+    lineName : Text;
+    preAmount : Float;
+    collection : Float;
+    loanFee : Float;
+    lending : Float;
+    expense : Float;
+    dynLeftJson : Text;
+    dynRightJson : Text;
+    leftTotal : Float;
+    rightTotal : Float;
+    reminder : Float;
+    savedAt : Text;
+    savedBy : Text;
+  };
+
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  let customersMap = Map.empty<Text, Customer>();
-  let emiPaymentsMap = Map.empty<Text, EMIPayment>();
-  let lineCategoriesMap = Map.empty<Text, LineCategory>();
-  let agentAccountsMap = Map.empty<Text, AgentAccount>();
+  // Stable storage — survives canister upgrades (must use stable var)
+  stable var stableCustomers : [(Text, Customer)] = [];
+  stable var stableEMIPayments : [(Text, EMIPayment)] = [];
+  stable var stableLineCategories : [(Text, LineCategory)] = [];
+  stable var stableAgentAccounts : [(Text, AgentAccount)] = [];
+  stable var stableSavedReports : [(Text, SavedReport)] = [];
+
+  // In-memory working maps
+  var customersMap : Map.Map<Text, Customer> = Map.empty();
+  var emiPaymentsMap : Map.Map<Text, EMIPayment> = Map.empty();
+  var lineCategoriesMap : Map.Map<Text, LineCategory> = Map.empty();
+  var agentAccountsMap : Map.Map<Text, AgentAccount> = Map.empty();
+  var savedReportsMap : Map.Map<Text, SavedReport> = Map.empty();
+
+  // Reconstruct maps from stable arrays on first init
+  do {
+    for ((k, v) in stableCustomers.vals()) { customersMap.add(k, v) };
+    for ((k, v) in stableEMIPayments.vals()) { emiPaymentsMap.add(k, v) };
+    for ((k, v) in stableLineCategories.vals()) { lineCategoriesMap.add(k, v) };
+    for ((k, v) in stableAgentAccounts.vals()) { agentAccountsMap.add(k, v) };
+    for ((k, v) in stableSavedReports.vals()) { savedReportsMap.add(k, v) };
+  };
+
+  // Persist maps to stable arrays before upgrade
+  system func preupgrade() {
+    stableCustomers := customersMap.entries().toArray();
+    stableEMIPayments := emiPaymentsMap.entries().toArray();
+    stableLineCategories := lineCategoriesMap.entries().toArray();
+    stableAgentAccounts := agentAccountsMap.entries().toArray();
+    stableSavedReports := savedReportsMap.entries().toArray();
+  };
+
+  // Reconstruct maps from stable arrays after upgrade, then clear stable arrays
+  system func postupgrade() {
+    customersMap := Map.empty();
+    emiPaymentsMap := Map.empty();
+    lineCategoriesMap := Map.empty();
+    agentAccountsMap := Map.empty();
+    savedReportsMap := Map.empty();
+    for ((k, v) in stableCustomers.vals()) { customersMap.add(k, v) };
+    for ((k, v) in stableEMIPayments.vals()) { emiPaymentsMap.add(k, v) };
+    for ((k, v) in stableLineCategories.vals()) { lineCategoriesMap.add(k, v) };
+    for ((k, v) in stableAgentAccounts.vals()) { agentAccountsMap.add(k, v) };
+    for ((k, v) in stableSavedReports.vals()) { savedReportsMap.add(k, v) };
+    stableCustomers := [];
+    stableEMIPayments := [];
+    stableLineCategories := [];
+    stableAgentAccounts := [];
+    stableSavedReports := [];
+  };
 
   // Customer Management
-  public shared ({ caller }) func addOrUpdateCustomer(customer : Customer) : async () {
+  public shared func addOrUpdateCustomer(customer : Customer) : async () {
     customersMap.add(customer.id, customer);
   };
 
-  public query ({ caller }) func getCustomers() : async [Customer] {
+  public query func getCustomers() : async [Customer] {
     customersMap.values().toArray();
   };
 
-  public shared ({ caller }) func deleteCustomer(id : Text) : async () {
+  public shared func deleteCustomer(id : Text) : async () {
     customersMap.remove(id);
-    // Remove associated EMI payments
     let toRemove = Map.empty<Text, Bool>();
     for ((pid, p) in emiPaymentsMap.entries()) {
       if (Text.equal(p.customerId, id)) {
@@ -77,40 +136,56 @@ actor {
   };
 
   // EMI Payments Management
-  public shared ({ caller }) func addOrUpdateEMIPayment(payment : EMIPayment) : async () {
+  public shared func addOrUpdateEMIPayment(payment : EMIPayment) : async () {
     emiPaymentsMap.add(payment.id, payment);
   };
 
-  public query ({ caller }) func getEMIPayments() : async [EMIPayment] {
+  public query func getEMIPayments() : async [EMIPayment] {
     emiPaymentsMap.values().toArray();
   };
 
-  public shared ({ caller }) func deleteEMIPayment(paymentId : Text) : async () {
+  public shared func deleteEMIPayment(paymentId : Text) : async () {
     emiPaymentsMap.remove(paymentId);
   };
 
   // Line Categories Management
-  public shared ({ caller }) func setLineCategories(categories : [LineCategory]) : async () {
-    lineCategoriesMap.clear();
-    for (category in categories.values()) {
+  public shared func setLineCategories(categories : [LineCategory]) : async () {
+    lineCategoriesMap := Map.empty();
+    for (category in categories.vals()) {
       lineCategoriesMap.add(category.id, category);
     };
   };
 
-  public query ({ caller }) func getLineCategories() : async [LineCategory] {
+  public query func getLineCategories() : async [LineCategory] {
     lineCategoriesMap.values().toArray();
   };
 
   // Agent Accounts Management
-  public shared ({ caller }) func addOrUpdateAgentAccount(agent : AgentAccount) : async () {
+  public shared func addOrUpdateAgentAccount(agent : AgentAccount) : async () {
     agentAccountsMap.add(agent.id, agent);
   };
 
-  public query ({ caller }) func getAgentAccounts() : async [AgentAccount] {
+  public query func getAgentAccounts() : async [AgentAccount] {
     agentAccountsMap.values().toArray();
   };
 
-  public shared ({ caller }) func deleteAgentAccount(id : Text) : async () {
+  public shared func deleteAgentAccount(id : Text) : async () {
     agentAccountsMap.remove(id);
+  };
+
+  // Saved Reports Management
+  // Key = lineName:reportDate for last-write-wins per line+date
+  public shared func addOrUpdateSavedReport(report : SavedReport) : async () {
+    let key = report.lineName # ":" # report.reportDate;
+    savedReportsMap.add(key, report);
+  };
+
+  public query func getSavedReports() : async [SavedReport] {
+    savedReportsMap.values().toArray();
+  };
+
+  public shared func deleteSavedReport(id : Text) : async () {
+    // id here is the composite key lineName:reportDate
+    savedReportsMap.remove(id);
   };
 };

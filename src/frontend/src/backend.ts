@@ -122,6 +122,23 @@ export interface AgentAccount {
     password: string;
     assignedLines: string[];
 }
+export interface CloudSavedReport {
+    id: string;
+    reportDate: string;
+    lineName: string;
+    preAmount: number;
+    collection: number;
+    loanFee: number;
+    lending: number;
+    expense: number;
+    dynLeftJson: string;
+    dynRightJson: string;
+    leftTotal: number;
+    rightTotal: number;
+    reminder: number;
+    savedAt: string;
+    savedBy: string;
+}
 export enum UserRole {
     admin = "admin",
     user = "user",
@@ -131,20 +148,23 @@ export interface backendInterface {
     _initializeAccessControlWithSecret(userSecret: string): Promise<void>;
     addOrUpdateCustomer(customer: Customer): Promise<void>;
     addOrUpdateEMIPayment(payment: EMIPayment): Promise<void>;
+    addOrUpdateAgentAccount(agent: AgentAccount): Promise<void>;
+    addOrUpdateSavedReport(report: CloudSavedReport): Promise<void>;
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     deleteCustomer(id: string): Promise<void>;
     deleteEMIPayment(paymentId: string): Promise<void>;
+    deleteAgentAccount(id: string): Promise<void>;
+    deleteSavedReport(key: string): Promise<void>;
     getCallerUserRole(): Promise<UserRole>;
     getCustomers(): Promise<Array<Customer>>;
     getEMIPayments(): Promise<Array<EMIPayment>>;
+    getAgentAccounts(): Promise<Array<AgentAccount>>;
     getLineCategories(): Promise<Array<LineCategory>>;
+    getSavedReports(): Promise<Array<CloudSavedReport>>;
     isCallerAdmin(): Promise<boolean>;
     setLineCategories(categories: Array<LineCategory>): Promise<void>;
-    addOrUpdateAgentAccount(agent: AgentAccount): Promise<void>;
-    deleteAgentAccount(id: string): Promise<void>;
-    getAgentAccounts(): Promise<Array<AgentAccount>>;
 }
-import type { UserRole as _UserRole } from "./declarations/backend.did.d.ts";
+import type { UserRole as _UserRole, AgentAccount as _AgentAccount } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
     constructor(private actor: ActorSubclass<_SERVICE>, private _uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, private _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, private processError?: (error: unknown) => never){}
     async _initializeAccessControlWithSecret(arg0: string): Promise<void> {
@@ -186,6 +206,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.addOrUpdateEMIPayment(arg0);
+            return result;
+        }
+    }
+    async addOrUpdateAgentAccount(arg0: AgentAccount): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addOrUpdateAgentAccount(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addOrUpdateAgentAccount(arg0);
+            return result;
+        }
+    }
+    async addOrUpdateSavedReport(arg0: CloudSavedReport): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.addOrUpdateSavedReport(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.addOrUpdateSavedReport(arg0);
             return result;
         }
     }
@@ -231,6 +279,34 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async deleteAgentAccount(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteAgentAccount(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteAgentAccount(arg0);
+            return result;
+        }
+    }
+    async deleteSavedReport(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteSavedReport(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteSavedReport(arg0);
+            return result;
+        }
+    }
     async getCallerUserRole(): Promise<UserRole> {
         if (this.processError) {
             try {
@@ -273,6 +349,20 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async getAgentAccounts(): Promise<Array<AgentAccount>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getAgentAccounts();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getAgentAccounts();
+            return result;
+        }
+    }
     async getLineCategories(): Promise<Array<LineCategory>> {
         if (this.processError) {
             try {
@@ -284,6 +374,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getLineCategories();
+            return result;
+        }
+    }
+    async getSavedReports(): Promise<Array<CloudSavedReport>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getSavedReports();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getSavedReports();
             return result;
         }
     }
@@ -314,19 +418,6 @@ export class Backend implements backendInterface {
             const result = await this.actor.setLineCategories(arg0);
             return result;
         }
-    }
-    async addOrUpdateAgentAccount(arg0: AgentAccount): Promise<void> {
-        const actor = this.actor as any;
-        if (actor.addOrUpdateAgentAccount) return actor.addOrUpdateAgentAccount(arg0);
-    }
-    async deleteAgentAccount(arg0: string): Promise<void> {
-        const actor = this.actor as any;
-        if (actor.deleteAgentAccount) return actor.deleteAgentAccount(arg0);
-    }
-    async getAgentAccounts(): Promise<Array<AgentAccount>> {
-        const actor = this.actor as any;
-        if (actor.getAgentAccounts) return actor.getAgentAccounts();
-        return [];
     }
 }
 function from_candid_UserRole_n3(_uploadFile: (file: ExternalBlob) => Promise<Uint8Array>, _downloadFile: (file: Uint8Array) => Promise<ExternalBlob>, value: _UserRole): UserRole {

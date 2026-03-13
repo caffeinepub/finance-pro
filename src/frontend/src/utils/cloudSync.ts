@@ -1,11 +1,13 @@
 import type {
   AgentAccount,
+  CloudSavedReport,
   Customer,
   EMIPayment,
   LineCategory,
   backendInterface,
 } from "../backend";
 import { createActorWithConfig } from "../config";
+import type { SavedReport, SavedReportField } from "../store/types";
 
 let actorCache: backendInterface | null = null;
 
@@ -112,5 +114,92 @@ export async function loadFromCloud(): Promise<{
     return { customers, emiPayments };
   } catch {
     return { customers: [], emiPayments: [] };
+  }
+}
+
+// Saved Reports
+export function savedReportToCloud(r: SavedReport): CloudSavedReport {
+  return {
+    id: r.id,
+    reportDate: r.reportDate,
+    lineName: r.lineName,
+    preAmount: r.preAmount,
+    collection: r.collection,
+    loanFee: r.loanFee,
+    lending: r.lending,
+    expense: r.expense,
+    dynLeftJson: JSON.stringify(r.dynLeft),
+    dynRightJson: JSON.stringify(r.dynRight),
+    leftTotal: r.leftTotal,
+    rightTotal: r.rightTotal,
+    reminder: r.reminder,
+    savedAt: r.savedAt,
+    savedBy: r.savedBy,
+  };
+}
+
+export function cloudToSavedReport(c: CloudSavedReport): SavedReport {
+  let dynLeft: SavedReportField[] = [];
+  let dynRight: SavedReportField[] = [];
+  try {
+    dynLeft = JSON.parse(c.dynLeftJson);
+  } catch {
+    dynLeft = [];
+  }
+  try {
+    dynRight = JSON.parse(c.dynRightJson);
+  } catch {
+    dynRight = [];
+  }
+  return {
+    id: c.id,
+    reportDate: c.reportDate,
+    lineName: c.lineName,
+    preAmount: c.preAmount,
+    collection: c.collection,
+    loanFee: c.loanFee,
+    lending: c.lending,
+    expense: c.expense,
+    dynLeft,
+    dynRight,
+    leftTotal: c.leftTotal,
+    rightTotal: c.rightTotal,
+    reminder: c.reminder,
+    savedAt: c.savedAt,
+    savedBy: c.savedBy,
+  };
+}
+
+export async function syncSavedReportToCloud(
+  report: SavedReport,
+): Promise<void> {
+  try {
+    const actor = await getActor();
+    await actor.addOrUpdateSavedReport(savedReportToCloud(report));
+  } catch {
+    // best-effort
+  }
+}
+
+export async function deleteSavedReportFromCloud(
+  lineName: string,
+  reportDate: string,
+): Promise<void> {
+  try {
+    const actor = await getActor();
+    // Cloud key is lineName:reportDate
+    await actor.deleteSavedReport(`${lineName}:${reportDate}`);
+  } catch {
+    // best-effort
+  }
+}
+
+export async function loadSavedReports(): Promise<SavedReport[]> {
+  try {
+    const actor = await getActor();
+    const reports = await actor.getSavedReports();
+    return reports.map(cloudToSavedReport);
+  } catch {
+    return [];
   }
 }

@@ -1,29 +1,26 @@
 # Finance Pro
 
 ## Current State
-Version 36 is live. Cloud sync works for customers, EMI payments, and line categories via an ICP Motoko backend. Agent accounts (username, password, assigned lines) are stored only in local browser storage. Admin account is local-only. Login checks the local users array.
+Saved reports are stored only in local browser storage (zustand persist). Customers, EMIs, and line categories are cloud-synced via ICP Motoko backend. Saved reports are not synced — each device has its own report history.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `AgentAccount` type in Motoko backend with id, username, password, assignedLines fields
-- `addOrUpdateAgentAccount`, `getAgentAccounts`, `deleteAgentAccount` Motoko functions
-- `AgentAccount` interface in `backend.d.ts`
-- `syncAgentToCloud`, `deleteAgentFromCloud`, `loadAgentAccounts` in `cloudSync.ts`
-- `loadAgentsPreLogin` action in appStore that fetches agents from cloud and merges into users (replaces all agents, keeps admin)
-- App startup effect in `App.tsx` to call `loadAgentsPreLogin` on mount (before login)
+- `SavedReport` type in Motoko backend with fields: id, reportDate, lineName, preAmount, collection, loanFee, lending, expense, dynLeftJson (JSON text), dynRightJson (JSON text), leftTotal, rightTotal, reminder, savedAt, savedBy
+- Backend key: `lineName:reportDate` — last write overwrites (same line+date = overwrite)
+- Backend methods: `addOrUpdateSavedReport`, `getSavedReports`, `deleteSavedReport`
+- cloudSync.ts: `syncSavedReportToCloud`, `deleteSavedReportFromCloud`, `loadSavedReports`
 
 ### Modify
-- `appStore.ts`: `addUser`, `updateUser`, `deleteUser` now fire cloud sync after mutation (agents only, not admin)
-- `appStore.ts`: `loadCloudData` also fetches and merges agent accounts from cloud (cloud overwrites local agents)
-- `backend.d.ts`: add AgentAccount interface and three new methods to backendInterface
+- `main.mo`: add SavedReport stable storage, map, pre/postupgrade hooks, and CRUD methods
+- `backend.did.js` and `backend.did.d.ts`: add SavedReport type and three new methods
+- `appStore.ts`: saveReport triggers cloud sync; deleteSavedReport triggers cloud delete; loadCloudData loads saved reports from cloud (cloud overwrites local, filtered by assigned lines for agents)
 
 ### Remove
 - Nothing removed
 
 ## Implementation Plan
-1. Update `src/backend/main.mo` — add AgentAccount type and three CRUD functions
-2. Update `src/frontend/src/backend.d.ts` — add AgentAccount interface + three methods
-3. Update `src/frontend/src/utils/cloudSync.ts` — add agent sync/load functions
-4. Update `src/frontend/src/store/appStore.ts` — wire addUser/updateUser/deleteUser to cloud sync; update loadCloudData; add loadAgentsPreLogin
-5. Update `src/frontend/src/App.tsx` — call loadAgentsPreLogin on mount
+1. Update `main.mo` to add SavedReport type + stable storage + CRUD methods (key = lineName:reportDate for last-write-wins)
+2. Update Candid IDL files (backend.did.js, backend.did.d.ts) with SavedReport type and methods
+3. Update cloudSync.ts with saved report sync/load functions
+4. Update appStore.ts: saveReport syncs to cloud, deleteSavedReport deletes from cloud, loadCloudData also loads saved reports and merges (cloud overwrites local for same id)

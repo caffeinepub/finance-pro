@@ -4,13 +4,16 @@ import {
   deleteAgentFromCloud,
   deleteCustomerFromCloud,
   deleteEMIFromCloud,
+  deleteSavedReportFromCloud,
   loadAgentAccounts,
   loadFromCloud,
   loadLineCategories,
+  loadSavedReports,
   syncAgentToCloud,
   syncCustomerToCloud,
   syncEMIToCloud,
   syncLineCategoriesToCloud,
+  syncSavedReportToCloud,
 } from "../utils/cloudSync";
 import type {
   AppState,
@@ -268,21 +271,41 @@ export const useAppStore = create<AppStore>()(
           reportCustomFields: s.reportCustomFields.filter((f) => f.id !== id),
         })),
 
-      saveReport: (r) =>
+      saveReport: (r) => {
+        const newReport: SavedReport = {
+          ...r,
+          id: crypto.randomUUID(),
+          savedAt: new Date().toISOString(),
+        };
+        // Overwrite any existing report with same lineName+reportDate
         set((s) => ({
           savedReports: [
-            {
-              ...r,
-              id: crypto.randomUUID(),
-              savedAt: new Date().toISOString(),
-            },
-            ...s.savedReports,
+            newReport,
+            ...s.savedReports.filter(
+              (x) =>
+                !(x.lineName === r.lineName && x.reportDate === r.reportDate),
+            ),
           ],
-        })),
-      deleteSavedReport: (id) =>
+        }));
+        fireAndForget(
+          () => syncSavedReportToCloud(newReport),
+          get().setSyncStatus,
+        );
+      },
+
+      deleteSavedReport: (id) => {
+        const report = get().savedReports.find((r) => r.id === id);
         set((s) => ({
           savedReports: s.savedReports.filter((r) => r.id !== id),
-        })),
+        }));
+        if (report) {
+          fireAndForget(
+            () =>
+              deleteSavedReportFromCloud(report.lineName, report.reportDate),
+            get().setSyncStatus,
+          );
+        }
+      },
 
       restoreFromBackup: (data) =>
         set((s) => ({
@@ -322,10 +345,12 @@ export const useAppStore = create<AppStore>()(
             { customers: remoteCustomers, emiPayments: remoteEMIs },
             remoteLineCategories,
             remoteAgents,
+            remoteSavedReports,
           ] = await Promise.all([
             loadFromCloud(),
             loadLineCategories(),
             loadAgentAccounts(),
+            loadSavedReports(),
           ]);
 
           set((s) => {
@@ -381,12 +406,20 @@ export const useAppStore = create<AppStore>()(
               if (refreshed) updatedCurrentUser = refreshed;
             }
 
+            // Saved reports: cloud overwrites local (last-write-wins by lineName+reportDate)
+            // Cloud is authoritative; replace local with cloud data
+            const savedReports =
+              remoteSavedReports.length > 0
+                ? remoteSavedReports
+                : s.savedReports;
+
             return {
               customers: merged,
               emiPayments: mergedEMIs,
               lineCategories,
               users: [...admins, ...cloudAgents],
               currentUser: updatedCurrentUser,
+              savedReports,
             };
           });
 
