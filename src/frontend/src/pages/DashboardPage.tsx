@@ -1,10 +1,10 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { formatDate } from "@/lib/utils";
 import { CreditCard, IndianRupee, TrendingUp, Users } from "lucide-react";
 import { useAppStore } from "../store/appStore";
 import { outstandingAmount } from "../store/calculations";
 import { labels } from "../store/labels";
+import { formatDate } from "../utils/dateFormat";
 
 export default function DashboardPage() {
   const { customers, emiPayments, lineCategories, language } = useAppStore();

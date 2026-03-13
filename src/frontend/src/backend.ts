@@ -160,8 +160,11 @@ export interface backendInterface {
     getLineCategories(): Promise<Array<LineCategory>>;
     getSavedReports(): Promise<Array<CloudSavedReport>>;
     isCallerAdmin(): Promise<boolean>;
+    setCustomers(customers: Array<Customer>): Promise<void>;
+    setEMIPayments(payments: Array<EMIPayment>): Promise<void>;
     setLineCategories(categories: Array<LineCategory>): Promise<void>;
     setAgentAccounts(agents: Array<AgentAccount>): Promise<void>;
+    setSavedReports(reports: Array<CloudSavedReport>): Promise<void>;
 }
 import type { UserRole as _UserRole, AgentAccount as _AgentAccount } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -376,6 +379,34 @@ export class Backend implements backendInterface {
             return result;
         }
     }
+    async setCustomers(arg0: Array<Customer>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setCustomers(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setCustomers(arg0);
+            return result;
+        }
+    }
+    async setEMIPayments(arg0: Array<EMIPayment>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setEMIPayments(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setEMIPayments(arg0);
+            return result;
+        }
+    }
     async setLineCategories(arg0: Array<LineCategory>): Promise<void> {
         if (this.processError) {
             try {
@@ -401,6 +432,20 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.setAgentAccounts(arg0);
+            return result;
+        }
+    }
+    async setSavedReports(arg0: Array<CloudSavedReport>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setSavedReports(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setSavedReports(arg0);
             return result;
         }
     }

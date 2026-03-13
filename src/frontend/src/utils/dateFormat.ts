@@ -1,0 +1,11 @@
+/**
+ * Converts a date string (YYYY-MM-DD or ISO) to DD-MM-YYYY display format.
+ */
+export function formatDate(dateStr: string): string {
+  if (!dateStr) return "";
+  const parts = dateStr.split("T")[0].split("-");
+  if (parts.length === 3 && parts[0].length === 4) {
+    return `${parts[2]}-${parts[1]}-${parts[0]}`;
+  }
+  return dateStr;
+}

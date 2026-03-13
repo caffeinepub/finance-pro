@@ -62,7 +62,7 @@ actor {
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
-  // Stable storage — survives canister upgrades (must use stable var)
+  // Stable storage — survives canister upgrades
   stable var stableCustomers : [(Text, Customer)] = [];
   stable var stableEMIPayments : [(Text, EMIPayment)] = [];
   stable var stableLineCategories : [(Text, LineCategory)] = [];
@@ -85,7 +85,6 @@ actor {
     for ((k, v) in stableSavedReports.vals()) { savedReportsMap.add(k, v) };
   };
 
-  // Persist maps to stable arrays before upgrade
   system func preupgrade() {
     stableCustomers := customersMap.entries().toArray();
     stableEMIPayments := emiPaymentsMap.entries().toArray();
@@ -94,7 +93,6 @@ actor {
     stableSavedReports := savedReportsMap.entries().toArray();
   };
 
-  // Reconstruct maps from stable arrays after upgrade, then clear stable arrays
   system func postupgrade() {
     customersMap := Map.empty();
     emiPaymentsMap := Map.empty();
@@ -113,9 +111,17 @@ actor {
     stableSavedReports := [];
   };
 
-  // Customer Management
+  // Customer Management — individual add/update
   public shared func addOrUpdateCustomer(customer : Customer) : async () {
     customersMap.add(customer.id, customer);
+  };
+
+  // Customer Management — bulk replace (used by Upload to Cloud)
+  public shared func setCustomers(customers : [Customer]) : async () {
+    customersMap := Map.empty();
+    for (customer in customers.vals()) {
+      customersMap.add(customer.id, customer);
+    };
   };
 
   public query func getCustomers() : async [Customer] {
@@ -135,9 +141,17 @@ actor {
     };
   };
 
-  // EMI Payments Management
+  // EMI Payments Management — individual add/update
   public shared func addOrUpdateEMIPayment(payment : EMIPayment) : async () {
     emiPaymentsMap.add(payment.id, payment);
+  };
+
+  // EMI Payments Management — bulk replace (used by Upload to Cloud)
+  public shared func setEMIPayments(payments : [EMIPayment]) : async () {
+    emiPaymentsMap := Map.empty();
+    for (payment in payments.vals()) {
+      emiPaymentsMap.add(payment.id, payment);
+    };
   };
 
   public query func getEMIPayments() : async [EMIPayment] {
@@ -148,7 +162,7 @@ actor {
     emiPaymentsMap.remove(paymentId);
   };
 
-  // Line Categories Management — bulk replace (admin overwrites all)
+  // Line Categories Management — bulk replace
   public shared func setLineCategories(categories : [LineCategory]) : async () {
     lineCategoriesMap := Map.empty();
     for (category in categories.vals()) {
@@ -160,7 +174,7 @@ actor {
     lineCategoriesMap.values().toArray();
   };
 
-  // Agent Accounts Management — bulk replace (same pattern as line categories)
+  // Agent Accounts Management — bulk replace
   public shared func setAgentAccounts(agents : [AgentAccount]) : async () {
     agentAccountsMap := Map.empty();
     for (agent in agents.vals()) {
@@ -172,8 +186,16 @@ actor {
     agentAccountsMap.values().toArray();
   };
 
-  // Saved Reports Management
-  // Key = lineName:reportDate for last-write-wins per line+date
+  // Saved Reports Management — bulk replace (used by Upload to Cloud)
+  public shared func setSavedReports(reports : [SavedReport]) : async () {
+    savedReportsMap := Map.empty();
+    for (report in reports.vals()) {
+      let key = report.lineName # ":" # report.reportDate;
+      savedReportsMap.add(key, report);
+    };
+  };
+
+  // Saved Reports Management — individual add/update
   public shared func addOrUpdateSavedReport(report : SavedReport) : async () {
     let key = report.lineName # ":" # report.reportDate;
     savedReportsMap.add(key, report);
@@ -184,7 +206,6 @@ actor {
   };
 
   public shared func deleteSavedReport(id : Text) : async () {
-    // id here is the composite key lineName:reportDate
     savedReportsMap.remove(id);
   };
 };

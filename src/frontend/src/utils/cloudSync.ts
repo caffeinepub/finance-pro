@@ -197,3 +197,29 @@ export async function loadSavedReports(): Promise<SavedReport[]> {
     return [];
   }
 }
+
+/**
+ * Upload ALL local data to cloud in one shot using bulk-replace methods.
+ * Each data type is sent as a single canister call — same reliable pattern as
+ * setLineCategories / setAgentAccounts. Returns true on success, false on error.
+ */
+export async function uploadAllLocalDataToCloud(params: {
+  customers: Customer[];
+  emiPayments: EMIPayment[];
+  lineCategories: LineCategory[];
+  agents: AgentAccount[];
+  savedReports: SavedReport[];
+}): Promise<boolean> {
+  try {
+    const actor = await getActor();
+    // Use bulk-replace calls — 5 total calls regardless of data size
+    await actor.setCustomers(params.customers);
+    await actor.setEMIPayments(params.emiPayments);
+    await actor.setLineCategories(params.lineCategories);
+    await actor.setAgentAccounts(params.agents);
+    await actor.setSavedReports(params.savedReports.map(savedReportToCloud));
+    return true;
+  } catch {
+    return false;
+  }
+}

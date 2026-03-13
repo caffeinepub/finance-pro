@@ -76,8 +76,11 @@ export interface _SERVICE {
   'getLineCategories' : ActorMethod<[], Array<LineCategory>>,
   'getSavedReports' : ActorMethod<[], Array<CloudSavedReport>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
+  'setCustomers' : ActorMethod<[Array<Customer>], undefined>,
+  'setEMIPayments' : ActorMethod<[Array<EMIPayment>], undefined>,
   'setLineCategories' : ActorMethod<[Array<LineCategory>], undefined>,
   'setAgentAccounts' : ActorMethod<[Array<AgentAccount>], undefined>,
+  'setSavedReports' : ActorMethod<[Array<CloudSavedReport>], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

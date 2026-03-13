@@ -13,6 +13,7 @@ import {
   syncEMIToCloud,
   syncLineCategoriesToCloud,
   syncSavedReportToCloud,
+  uploadAllLocalDataToCloud,
 } from "../utils/cloudSync";
 import type {
   AppState,
@@ -50,31 +51,24 @@ interface AppStore extends AppState {
   login: (username: string, password: string) => boolean;
   logout: () => void;
   setLanguage: (lang: "en" | "ta") => void;
-  // Lines
   addLineCategory: (name: string) => void;
   updateLineCategory: (id: string, name: string) => void;
   deleteLineCategory: (id: string) => void;
-  // Customers
   addCustomer: (
     c: Omit<Customer, "id" | "createdAt" | "createdBy"> & { loanDate?: string },
   ) => void;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
   deleteCustomer: (id: string) => void;
-  // Users
   addUser: (u: Omit<User, "id">) => void;
   updateUser: (id: string, u: Partial<User>) => void;
   deleteUser: (id: string) => void;
-  // EMI
   addEMIPayment: (e: Omit<EMIPayment, "id" | "createdAt">) => void;
   updateEMIPayment: (id: string, amount: number) => void;
   deleteEMIPayment: (id: string) => void;
-  // Report fields
   saveReportCustomField: (f: ReportCustomField) => void;
   deleteReportCustomField: (id: string) => void;
-  // Saved Reports
   saveReport: (r: Omit<SavedReport, "id" | "savedAt">) => void;
   deleteSavedReport: (id: string) => void;
-  // Restore
   restoreFromBackup: (data: {
     customers?: Customer[];
     emiPayments?: EMIPayment[];
@@ -82,9 +76,9 @@ interface AppStore extends AppState {
     reportCustomFields?: ReportCustomField[];
     savedReports?: SavedReport[];
   }) => void;
-  // Cloud sync
   loadCloudData: () => Promise<void>;
   loadAgentsPreLogin: () => Promise<void>;
+  uploadToCloud: () => Promise<boolean>;
 }
 
 function fireAndForget(
@@ -97,7 +91,6 @@ function fireAndForget(
     .catch(() => setSyncStatus("error"));
 }
 
-/** Convert a User (agent) to the cloud AgentAccount shape */
 function userToAgentAccount(u: User) {
   return {
     id: u.id,
@@ -200,7 +193,6 @@ export const useAppStore = create<AppStore>()(
       addUser: (u) => {
         const newUser: User = { ...u, id: crypto.randomUUID() };
         set((s) => ({ users: [...s.users, newUser] }));
-        // Bulk-sync all agents to cloud (same pattern as line categories)
         if (newUser.role === "agent") {
           const allAgents = get()
             .users.filter((x) => x.role === "agent")
@@ -219,7 +211,6 @@ export const useAppStore = create<AppStore>()(
               ? { ...s.currentUser, ...u }
               : s.currentUser,
         }));
-        // Bulk-sync all agents to cloud after any agent update
         const updatedUser = get().users.find((x) => x.id === id);
         if (updatedUser && updatedUser.role === "agent") {
           const allAgents = get()
@@ -235,7 +226,6 @@ export const useAppStore = create<AppStore>()(
         const userToDelete = get().users.find((x) => x.id === id);
         set((s) => ({ users: s.users.filter((x) => x.id !== id) }));
         if (userToDelete && userToDelete.role === "agent") {
-          // Bulk-sync remaining agents (without the deleted one)
           const allAgents = get()
             .users.filter((x) => x.role === "agent")
             .map(userToAgentAccount);
@@ -288,7 +278,6 @@ export const useAppStore = create<AppStore>()(
           id: crypto.randomUUID(),
           savedAt: new Date().toISOString(),
         };
-        // Overwrite any existing report with same lineName+reportDate
         set((s) => ({
           savedReports: [
             newReport,
@@ -332,7 +321,6 @@ export const useAppStore = create<AppStore>()(
           const remoteAgents = await loadAgentAccounts();
           if (remoteAgents.length === 0) return;
           set((s) => {
-            // Keep admin accounts, replace all agents with cloud version
             const admins = s.users.filter((u) => u.role === "admin");
             const cloudAgents: User[] = remoteAgents.map((a) => ({
               id: a.id,
@@ -365,21 +353,18 @@ export const useAppStore = create<AppStore>()(
           ]);
 
           set((s) => {
-            // FIX: Cloud is source of truth for customers -- replace local entirely
-            // so deletions on one device propagate to all other devices.
+            // Cloud is always authoritative — use cloud data directly.
+            // If cloud returns empty, local is replaced with empty.
+            // This ensures admin deletions propagate to all devices.
             const customers = remoteCustomers as unknown as Customer[];
-
-            // FIX: Cloud is source of truth for EMIs -- replace local entirely
-            // so deletions on one device propagate to all other devices.
             const emiPayments = remoteEMIs as unknown as EMIPayment[];
+            const savedReports = remoteSavedReports as SavedReport[];
 
-            // Line categories: cloud overwrites local if cloud has data
             const lineCategories =
               remoteLineCategories.length > 0
                 ? (remoteLineCategories as unknown as LineCategory[])
                 : s.lineCategories;
 
-            // Agents: cloud overwrites local agents (admin stays)
             const admins = s.users.filter((u) => u.role === "admin");
             const cloudAgents: User[] =
               remoteAgents.length > 0
@@ -392,7 +377,6 @@ export const useAppStore = create<AppStore>()(
                   }))
                 : s.users.filter((u) => u.role === "agent");
 
-            // Update currentUser if it's an agent that was updated
             let updatedCurrentUser = s.currentUser;
             if (s.currentUser && s.currentUser.role === "agent") {
               const refreshed = cloudAgents.find(
@@ -400,11 +384,6 @@ export const useAppStore = create<AppStore>()(
               );
               if (refreshed) updatedCurrentUser = refreshed;
             }
-
-            // FIX: Always trust cloud for saved reports, even if the list is empty.
-            // Previously, an empty cloud response fell back to local, so deletions
-            // made on another device (or all reports deleted) never propagated.
-            const savedReports = remoteSavedReports as SavedReport[];
 
             return {
               customers,
@@ -421,11 +400,33 @@ export const useAppStore = create<AppStore>()(
           setSyncStatus("error");
         }
       },
+
+      uploadToCloud: async (): Promise<boolean> => {
+        const { setSyncStatus } = get();
+        setSyncStatus("syncing");
+        const state = get();
+        const agents = state.users
+          .filter((u) => u.role === "agent")
+          .map((u) => ({
+            id: u.id,
+            username: u.username,
+            password: u.password,
+            assignedLines: u.assignedLines,
+          }));
+        const success = await uploadAllLocalDataToCloud({
+          customers: state.customers,
+          emiPayments: state.emiPayments,
+          lineCategories: state.lineCategories,
+          agents,
+          savedReports: state.savedReports,
+        });
+        setSyncStatus(success ? "synced" : "error");
+        return success;
+      },
     }),
     {
       name: "finance-pro-store",
       partialize: (state) => {
-        // Don't persist syncStatus
         const { syncStatus: _syncStatus, ...rest } = state;
         return rest;
       },

@@ -77,6 +77,9 @@ export interface backendInterface {
     getLineCategories(): Promise<Array<LineCategory>>;
     getSavedReports(): Promise<Array<CloudSavedReport>>;
     isCallerAdmin(): Promise<boolean>;
+    setCustomers(customers: Array<Customer>): Promise<void>;
+    setEMIPayments(payments: Array<EMIPayment>): Promise<void>;
     setLineCategories(categories: Array<LineCategory>): Promise<void>;
     setAgentAccounts(agents: Array<AgentAccount>): Promise<void>;
+    setSavedReports(reports: Array<CloudSavedReport>): Promise<void>;
 }

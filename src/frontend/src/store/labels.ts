@@ -89,6 +89,12 @@ export const labels = {
     backupRestored: "Data restored successfully",
     invalidBackupFile: "Invalid backup file format",
     backupReadError: "Could not read the backup file",
+    uploadToCloud: "Upload to Cloud",
+    uploadSuccess: "Upload Successful",
+    uploadFail: "Upload Unsuccessful",
+    uploadSuccessMsg: "All data has been uploaded to cloud successfully.",
+    uploadFailMsg:
+      "Failed to upload data to cloud. Please check your connection and try again.",
   },
   ta: {
     appName: "ஃபைனான்ஸ் ப்ரோ",
@@ -180,6 +186,12 @@ export const labels = {
     backupRestored: "தரவு வெற்றிகரமாக மீட்டமைக்கப்பட்டது",
     invalidBackupFile: "தவறான கோப்பு வடிவம்",
     backupReadError: "கோப்பை படிக்க முடியவில்லை",
+    uploadToCloud: "Cloud-ல் பதிவேற்று",
+    uploadSuccess: "பதிவேற்றம் வெற்றிகரமாக முடிந்தது",
+    uploadFail: "பதிவேற்றம் தோல்வியடைந்தது",
+    uploadSuccessMsg: "அனைத்து தரவும் cloud-ல் வெற்றிகரமாக பதிவேற்றப்பட்டது.",
+    uploadFailMsg:
+      "Cloud-ல் பதிவேற்ற முடியவில்லை. இணைப்பை சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
   },
 };
 

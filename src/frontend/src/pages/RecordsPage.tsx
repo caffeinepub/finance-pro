@@ -16,7 +16,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { formatDate } from "@/lib/utils";
 import { Download, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -28,6 +27,7 @@ import {
   paidAmount,
 } from "../store/calculations";
 import { labels } from "../store/labels";
+import { formatDate } from "../utils/dateFormat";
 import { exportCustomers } from "../utils/excel";
 
 export default function RecordsPage() {
@@ -161,7 +161,7 @@ export default function RecordsPage() {
                       <p className="text-xs text-muted-foreground">
                         {line?.name} &bull;{" "}
                         {c.loanType === "Pre" ? t.loanTypePre : t.loanTypePost}{" "}
-                        &bull; {c.createdAt}bull; {formatDate(c.createdAt)}
+                        &bull; {formatDate(c.createdAt)}
                       </p>
                     </div>
                     <Badge
