@@ -47,12 +47,36 @@ export interface ReportCustomField {
   value: number;
 }
 
+export interface SavedReportField {
+  label: string;
+  value: number;
+}
+
+export interface SavedReport {
+  id: string;
+  reportDate: string;
+  lineName: string;
+  preAmount: number;
+  collection: number;
+  loanFee: number;
+  lending: number;
+  expense: number;
+  dynLeft: SavedReportField[];
+  dynRight: SavedReportField[];
+  leftTotal: number;
+  rightTotal: number;
+  reminder: number;
+  savedAt: string;
+  savedBy: string;
+}
+
 export interface AppState {
   users: User[];
   lineCategories: LineCategory[];
   customers: Customer[];
   emiPayments: EMIPayment[];
   reportCustomFields: ReportCustomField[];
+  savedReports: SavedReport[];
   currentUser: User | null;
   language: "en" | "ta";
 }

@@ -6,6 +6,7 @@ import type {
   EMIPayment,
   LineCategory,
   ReportCustomField,
+  SavedReport,
   User,
 } from "./types";
 
@@ -57,12 +58,16 @@ interface AppStore extends AppState {
   // Report fields
   saveReportCustomField: (f: ReportCustomField) => void;
   deleteReportCustomField: (id: string) => void;
+  // Saved Reports
+  saveReport: (r: Omit<SavedReport, "id" | "savedAt">) => void;
+  deleteSavedReport: (id: string) => void;
   // Restore
   restoreFromBackup: (data: {
     customers?: Customer[];
     emiPayments?: EMIPayment[];
     lineCategories?: LineCategory[];
     reportCustomFields?: ReportCustomField[];
+    savedReports?: SavedReport[];
   }) => void;
 }
 
@@ -74,6 +79,7 @@ export const useAppStore = create<AppStore>()(
       customers: [] as Customer[],
       emiPayments: [] as EMIPayment[],
       reportCustomFields: [],
+      savedReports: [],
       currentUser: null,
       language: "en",
 
@@ -173,12 +179,29 @@ export const useAppStore = create<AppStore>()(
           reportCustomFields: s.reportCustomFields.filter((f) => f.id !== id),
         })),
 
+      saveReport: (r) =>
+        set((s) => ({
+          savedReports: [
+            {
+              ...r,
+              id: crypto.randomUUID(),
+              savedAt: new Date().toISOString(),
+            },
+            ...s.savedReports,
+          ],
+        })),
+      deleteSavedReport: (id) =>
+        set((s) => ({
+          savedReports: s.savedReports.filter((r) => r.id !== id),
+        })),
+
       restoreFromBackup: (data) =>
         set((s) => ({
           customers: data.customers ?? s.customers,
           emiPayments: data.emiPayments ?? s.emiPayments,
           lineCategories: data.lineCategories ?? s.lineCategories,
           reportCustomFields: data.reportCustomFields ?? s.reportCustomFields,
+          savedReports: data.savedReports ?? s.savedReports,
         })),
     }),
     { name: "finance-pro-store" },
