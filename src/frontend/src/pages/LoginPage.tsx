@@ -76,14 +76,11 @@ export default function LoginPage() {
               onClick={() => setLanguage(language === "en" ? "ta" : "en")}
               className="text-xs text-muted-foreground underline"
             >
-              {language === "en" ? "தமிழ்பில் மாற்று" : "Switch to English"}
+              {language === "en" ? "தமிழ்" : "Switch to English"}
             </button>
           </div>
         </CardContent>
       </Card>
-      <p className="text-white/50 text-xs mt-4">
-        admin / admin123 &bull; agent1 / agent123
-      </p>
     </div>
   );
 }
