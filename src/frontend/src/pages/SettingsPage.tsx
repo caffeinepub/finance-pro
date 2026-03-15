@@ -18,6 +18,7 @@ import {
   ArrowLeft,
   Check,
   Download,
+  Loader2,
   Pencil,
   Plus,
   Trash2,
@@ -76,6 +77,7 @@ export default function SettingsPage({ onClose }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [pendingRestoreData, setPendingRestoreData] = useState<any>(null);
+  const [isRestoring, setIsRestoring] = useState(false);
 
   const handleDownloadBackup = () => {
     const backupData = {
@@ -136,17 +138,36 @@ export default function SettingsPage({ onClose }: Props) {
     reader.readAsText(file);
   };
 
-  const handleConfirmRestore = () => {
+  const handleConfirmRestore = async () => {
     if (!pendingRestoreData) return;
-    restoreFromBackup({
+    setIsRestoring(true);
+    setPendingRestoreData(null);
+    setRestoreDialogOpen(false);
+
+    const success = await restoreFromBackup({
       customers: pendingRestoreData.customers,
       emiPayments: pendingRestoreData.emiPayments,
       lineCategories: pendingRestoreData.lineCategories,
       reportCustomFields: pendingRestoreData.reportCustomFields,
     });
-    setPendingRestoreData(null);
-    setRestoreDialogOpen(false);
-    showAlert(t.backupRestored, "success");
+
+    setIsRestoring(false);
+
+    if (success) {
+      showAlert(
+        language === "ta"
+          ? "தரவு மீட்டமைக்கப்பட்டு மேகக் கணினியில் பதிவேற்றப்பட்டது"
+          : "Data restored and uploaded to cloud successfully",
+        "success",
+      );
+    } else {
+      showAlert(
+        language === "ta"
+          ? "தரவு மீட்டமைக்கப்பட்டது, ஆனால் மேக பதிவேற்றம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்."
+          : "Data restored but cloud upload failed. Please try again.",
+        "error",
+      );
+    }
   };
 
   const handleChangePw = () => {
@@ -251,6 +272,22 @@ export default function SettingsPage({ onClose }: Props) {
   return (
     <div data-ocid="settings.page" className="space-y-4">
       {AlertComponent}
+
+      {/* Full-screen restoring overlay */}
+      {isRestoring && (
+        <div
+          data-ocid="settings.restore_loading_state"
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center bg-background/80 backdrop-blur-sm"
+        >
+          <Loader2 className="h-10 w-10 animate-spin text-primary mb-3" />
+          <p className="text-sm font-medium text-foreground">
+            {language === "ta"
+              ? "மேகக் கணினியில் பதிவேற்றுகிறது..."
+              : "Uploading to cloud..."}
+          </p>
+        </div>
+      )}
+
       <input
         ref={fileInputRef}
         type="file"
@@ -267,8 +304,8 @@ export default function SettingsPage({ onClose }: Props) {
             </AlertDialogTitle>
             <AlertDialogDescription>
               {language === "ta"
-                ? "இது தற்போதைய அனைத்து வாடிக்கையாளர் மற்றும் EMI தரவையும் பேக்கப்பிலிருந்து மாற்றும். இதை செயல்தவிர்க்க முடியாது. தொடர வேண்டுமா?"
-                : "This will replace all existing customer and EMI data with the backup. This cannot be undone. Are you sure?"}
+                ? "இது தற்போதைய அனைத்து வாடிக்கையாளர் மற்றும் EMI தரவையும் பேக்கப்பிலிருந்து மாற்றும். மீட்டமைத்த பிறகு தரவு மேகக் கணினியில் தானாக பதிவேற்றப்படும். இதை செயல்தவிர்க்க முடியாது. தொடர வேண்டுமா?"
+                : "This will replace all existing customer and EMI data with the backup. Data will be automatically uploaded to cloud after restore. This cannot be undone. Are you sure?"}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -337,9 +374,14 @@ export default function SettingsPage({ onClose }: Props) {
                 className="w-full"
                 variant="outline"
                 onClick={handleRestoreClick}
+                disabled={isRestoring}
                 data-ocid="settings.restore_button"
               >
-                <Upload className="h-4 w-4 mr-2" />
+                {isRestoring ? (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                ) : (
+                  <Upload className="h-4 w-4 mr-2" />
+                )}
                 {language === "ta"
                   ? "பேக்கப்பிலிருந்து மீட்டமை"
                   : "Restore from Backup"}

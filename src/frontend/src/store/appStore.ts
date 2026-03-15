@@ -76,7 +76,7 @@ interface AppStore extends AppState {
     lineCategories?: LineCategory[];
     reportCustomFields?: ReportCustomField[];
     savedReports?: SavedReport[];
-  }) => void;
+  }) => Promise<boolean>;
   loadCloudData: () => Promise<void>;
   loadAgentsPreLogin: () => Promise<void>;
   uploadToCloud: () => Promise<boolean>;
@@ -326,28 +326,30 @@ export const useAppStore = create<AppStore>()(
         }
       },
 
-      restoreFromBackup: (data) => {
+      restoreFromBackup: async (data): Promise<boolean> => {
+        // 1. Restore data to in-memory state
         set((s) => ({
           customers: data.customers ?? s.customers,
           emiPayments: data.emiPayments ?? s.emiPayments,
           lineCategories: data.lineCategories ?? s.lineCategories,
           reportCustomFields: data.reportCustomFields ?? s.reportCustomFields,
           savedReports: data.savedReports ?? s.savedReports,
+          syncStatus: "syncing",
         }));
-        // After restoring, immediately push all data to cloud so all devices sync
+
+        // 2. Immediately push all restored data to cloud (bulk-replace)
         const state = get();
         const allUsers = buildCloudUsersPayload(state.users);
-        fireAndForget(
-          () =>
-            uploadAllLocalDataToCloud({
-              customers: state.customers,
-              emiPayments: state.emiPayments,
-              lineCategories: state.lineCategories,
-              agents: allUsers,
-              savedReports: state.savedReports,
-            }).then(() => {}),
-          get().setSyncStatus,
-        );
+        const success = await uploadAllLocalDataToCloud({
+          customers: state.customers,
+          emiPayments: state.emiPayments,
+          lineCategories: state.lineCategories,
+          agents: allUsers,
+          savedReports: state.savedReports,
+        });
+
+        get().setSyncStatus(success ? "synced" : "error");
+        return success;
       },
 
       loadAgentsPreLogin: async () => {

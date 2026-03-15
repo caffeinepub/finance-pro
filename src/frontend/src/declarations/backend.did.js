@@ -77,8 +77,11 @@ export const idlService = IDL.Service({
   'getLineCategories' : IDL.Func([], [IDL.Vec(LineCategory)], ['query']),
   'getSavedReports' : IDL.Func([], [IDL.Vec(SavedReport)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+  'setCustomers' : IDL.Func([IDL.Vec(Customer)], [], []),
+  'setEMIPayments' : IDL.Func([IDL.Vec(EMIPayment)], [], []),
   'setLineCategories' : IDL.Func([IDL.Vec(LineCategory)], [], []),
   'setAgentAccounts' : IDL.Func([IDL.Vec(AgentAccount)], [], []),
+  'setSavedReports' : IDL.Func([IDL.Vec(SavedReport)], [], []),
 });
 
 export const idlInitArgs = [];
@@ -153,8 +156,11 @@ export const idlFactory = ({ IDL }) => {
     'getLineCategories' : IDL.Func([], [IDL.Vec(LineCategory)], ['query']),
     'getSavedReports' : IDL.Func([], [IDL.Vec(SavedReport)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
+    'setCustomers' : IDL.Func([IDL.Vec(Customer)], [], []),
+    'setEMIPayments' : IDL.Func([IDL.Vec(EMIPayment)], [], []),
     'setLineCategories' : IDL.Func([IDL.Vec(LineCategory)], [], []),
     'setAgentAccounts' : IDL.Func([IDL.Vec(AgentAccount)], [], []),
+    'setSavedReports' : IDL.Func([IDL.Vec(SavedReport)], [], []),
   });
 };
 
