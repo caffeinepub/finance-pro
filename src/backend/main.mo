@@ -34,6 +34,10 @@ actor {
     name : Text;
   };
 
+  // IMPORTANT: Never add required fields to this type — it will break stable
+  // variable deserialization on upgrade and wipe all agent data.
+  // To add new agent properties, encode them as special markers inside
+  // assignedLines (e.g. "__dash_on__") and decode them in the frontend.
   type AgentAccount = {
     id : Text;
     username : Text;
@@ -104,11 +108,9 @@ actor {
     for ((k, v) in stableLineCategories.vals()) { lineCategoriesMap.add(k, v) };
     for ((k, v) in stableAgentAccounts.vals()) { agentAccountsMap.add(k, v) };
     for ((k, v) in stableSavedReports.vals()) { savedReportsMap.add(k, v) };
-    stableCustomers := [];
-    stableEMIPayments := [];
-    stableLineCategories := [];
-    stableAgentAccounts := [];
-    stableSavedReports := [];
+    // NOTE: stable arrays are intentionally NOT cleared here.
+    // Keeping them ensures data can be recovered on future upgrades
+    // even if the in-memory restore partially fails.
   };
 
   // Customer Management — individual add/update
@@ -116,7 +118,7 @@ actor {
     customersMap.add(customer.id, customer);
   };
 
-  // Customer Management — bulk replace (used by Upload to Cloud)
+  // Customer Management — bulk replace
   public shared func setCustomers(customers : [Customer]) : async () {
     customersMap := Map.empty();
     for (customer in customers.vals()) {
@@ -146,7 +148,7 @@ actor {
     emiPaymentsMap.add(payment.id, payment);
   };
 
-  // EMI Payments Management — bulk replace (used by Upload to Cloud)
+  // EMI Payments Management — bulk replace
   public shared func setEMIPayments(payments : [EMIPayment]) : async () {
     emiPaymentsMap := Map.empty();
     for (payment in payments.vals()) {
@@ -175,6 +177,10 @@ actor {
   };
 
   // Agent Accounts Management — bulk replace
+  // NOTE: Extra agent properties (e.g. dashboard access) are encoded as
+  // special marker strings inside assignedLines (e.g. "__dash_on__") and
+  // decoded by the frontend. This avoids any record type changes that would
+  // break stable variable compatibility on canister upgrade.
   public shared func setAgentAccounts(agents : [AgentAccount]) : async () {
     agentAccountsMap := Map.empty();
     for (agent in agents.vals()) {
@@ -186,7 +192,7 @@ actor {
     agentAccountsMap.values().toArray();
   };
 
-  // Saved Reports Management — bulk replace (used by Upload to Cloud)
+  // Saved Reports Management — bulk replace
   public shared func setSavedReports(reports : [SavedReport]) : async () {
     savedReportsMap := Map.empty();
     for (report in reports.vals()) {

@@ -95,6 +95,9 @@ export const labels = {
     uploadSuccessMsg: "All data has been uploaded to cloud successfully.",
     uploadFailMsg:
       "Failed to upload data to cloud. Please check your connection and try again.",
+    enableDashboard: "Enable Dashboard",
+    dashboardAccess: "Dashboard Access",
+    allLines: "All Lines",
   },
   ta: {
     appName: "ஃபைனான்ஸ் ப்ரோ",
@@ -192,6 +195,9 @@ export const labels = {
     uploadSuccessMsg: "அனைத்து தரவும் cloud-ல் வெற்றிகரமாக பதிவேற்றப்பட்டது.",
     uploadFailMsg:
       "Cloud-ல் பதிவேற்ற முடியவில்லை. இணைப்பை சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
+    enableDashboard: "டாஷ்போர்டு இயக்கு",
+    dashboardAccess: "டாஷ்போர்டு அணுகல்",
+    allLines: "அனைத்து வரிசைகள்",
   },
 };
 

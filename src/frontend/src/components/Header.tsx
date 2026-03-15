@@ -1,35 +1,18 @@
 import { Button } from "@/components/ui/button";
-import { CloudUpload, Globe, LogOut, Settings } from "lucide-react";
-import { useState } from "react";
+import { Globe, LogOut, Settings } from "lucide-react";
 import { useAppStore } from "../store/appStore";
 import { labels } from "../store/labels";
-import { useAlert } from "./AlertPopup";
 
 interface Props {
   onSettingsClick: () => void;
 }
 
 export default function Header({ onSettingsClick }: Props) {
-  const { logout, language, setLanguage, syncStatus, uploadToCloud } =
-    useAppStore();
+  const { logout, language, setLanguage, syncStatus } = useAppStore();
   const t = labels[language];
-  const [uploading, setUploading] = useState(false);
-  const { showAlert, AlertComponent } = useAlert(language);
-
-  const handleUpload = async () => {
-    setUploading(true);
-    const success = await uploadToCloud();
-    setUploading(false);
-    if (success) {
-      showAlert(t.uploadSuccessMsg, "success", t.uploadSuccess);
-    } else {
-      showAlert(t.uploadFailMsg, "error", t.uploadFail);
-    }
-  };
 
   return (
     <>
-      {AlertComponent}
       <header className="fixed top-0 left-0 right-0 z-50 bg-primary text-primary-foreground h-16 flex items-center px-4 shadow-lg">
         <div className="flex-1 flex items-center gap-2">
           <span className="text-xl font-bold tracking-wide font-display">
@@ -52,23 +35,6 @@ export default function Header({ onSettingsClick }: Props) {
           )}
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-primary-foreground hover:bg-white/20 text-xs px-2 h-8 gap-1"
-            onClick={handleUpload}
-            disabled={uploading}
-            data-ocid="header.upload_button"
-          >
-            <CloudUpload className="h-4 w-4" />
-            <span className="hidden sm:inline">
-              {uploading
-                ? language === "ta"
-                  ? "பதிவேற்றுகிறது..."
-                  : "Uploading..."
-                : t.uploadToCloud}
-            </span>
-          </Button>
           <Button
             variant="ghost"
             size="sm"

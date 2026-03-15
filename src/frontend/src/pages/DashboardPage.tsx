@@ -1,27 +1,61 @@
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { CreditCard, IndianRupee, TrendingUp, Users } from "lucide-react";
+import { useState } from "react";
 import { useAppStore } from "../store/appStore";
 import { outstandingAmount } from "../store/calculations";
 import { labels } from "../store/labels";
 import { formatDate } from "../utils/dateFormat";
+import { formatINR } from "../utils/formatINR";
 
 export default function DashboardPage() {
-  const { customers, emiPayments, lineCategories, language } = useAppStore();
+  const { customers, emiPayments, lineCategories, language, currentUser } =
+    useAppStore();
   const t = labels[language];
+
+  const isAgent = currentUser?.role === "agent";
+
+  // For agents, restrict selectable lines to their assigned lines
+  const availableLines = isAgent
+    ? lineCategories.filter((l) => currentUser?.assignedLines.includes(l.id))
+    : lineCategories;
+
+  const [selectedLineId, setSelectedLineId] = useState<string>(
+    isAgent && availableLines.length > 0 ? availableLines[0].id : "__all__",
+  );
 
   const today = new Date().toISOString().split("T")[0];
 
-  const totalCustomers = customers.length;
-  const activeLoans = customers.filter(
+  // Filter customers by selected line
+  const filteredCustomers =
+    selectedLineId === "__all__"
+      ? customers
+      : customers.filter((c) => c.lineCategoryId === selectedLineId);
+
+  const filteredCustomerIds = new Set(filteredCustomers.map((c) => c.id));
+
+  const totalCustomers = filteredCustomers.length;
+  const activeLoans = filteredCustomers.filter(
     (c) => outstandingAmount(c, emiPayments) > 0,
   ).length;
-  const totalLoanAmount = customers.reduce((s, c) => s + c.loanAmount, 0);
+  const totalLoanAmount = filteredCustomers.reduce(
+    (s, c) => s + c.loanAmount,
+    0,
+  );
   const todayCollection = emiPayments
-    .filter((e) => e.paymentDate === today)
+    .filter(
+      (e) => e.paymentDate === today && filteredCustomerIds.has(e.customerId),
+    )
     .reduce((s, e) => s + e.amount, 0);
 
   const recentActivity = [...emiPayments]
+    .filter((e) => filteredCustomerIds.has(e.customerId))
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
     .slice(0, 10)
     .map((e) => ({
@@ -51,13 +85,13 @@ export default function DashboardPage() {
     },
     {
       label: t.totalLoanAmount,
-      value: `₹${totalLoanAmount.toLocaleString()}`,
+      value: formatINR(totalLoanAmount),
       icon: IndianRupee,
       color: "text-amber-500",
     },
     {
       label: t.todayCollection,
-      value: `₹${todayCollection.toLocaleString()}`,
+      value: formatINR(todayCollection),
       icon: CreditCard,
       color: "text-violet-500",
     },
@@ -67,6 +101,26 @@ export default function DashboardPage() {
     <div data-ocid="dashboard.page" className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-bold text-foreground">{t.dashboard}</h2>
+      </div>
+
+      {/* Line Category Filter */}
+      <div data-ocid="dashboard.line_filter">
+        <Select value={selectedLineId} onValueChange={setSelectedLineId}>
+          <SelectTrigger
+            className="w-full h-9 text-sm"
+            data-ocid="dashboard.line_select"
+          >
+            <SelectValue placeholder={t.selectLine} />
+          </SelectTrigger>
+          <SelectContent>
+            {!isAgent && <SelectItem value="__all__">{t.allLines}</SelectItem>}
+            {availableLines.map((l) => (
+              <SelectItem key={l.id} value={l.id}>
+                {l.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
@@ -109,7 +163,7 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <span className="text-sm font-semibold text-emerald-600">
-                    ₹{a.amount.toLocaleString()}
+                    {formatINR(a.amount)}
                   </span>
                 </div>
               ))}

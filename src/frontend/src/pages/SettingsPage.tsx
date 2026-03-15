@@ -178,6 +178,7 @@ export default function SettingsPage({ onClose }: Props) {
       password: newAgent.password,
       role: "agent",
       assignedLines: [],
+      dashboardEnabled: false,
     });
     toast.success("Agent added");
     setNewAgent({ username: "", password: "" });
@@ -211,6 +212,10 @@ export default function SettingsPage({ onClose }: Props) {
       ? current.filter((l) => l !== lineId)
       : [...current, lineId];
     store.updateUser(agentId, { assignedLines: updated });
+  };
+
+  const toggleDashboardEnabled = (agentId: string, current: boolean) => {
+    store.updateUser(agentId, { dashboardEnabled: !current });
   };
 
   const handleSaveLine = () => {
@@ -529,7 +534,9 @@ export default function SettingsPage({ onClose }: Props) {
                           </button>
                         </div>
                       </div>
-                      <div>
+
+                      {/* Assign Lines */}
+                      <div className="mb-2">
                         <p className="text-xs text-muted-foreground mb-1">
                           {t.assignLines}:
                         </p>
@@ -551,6 +558,29 @@ export default function SettingsPage({ onClose }: Props) {
                               </label>
                             </div>
                           ))}
+                        </div>
+                      </div>
+
+                      {/* Dashboard Access */}
+                      <div className="pt-2 border-t border-border">
+                        <div className="flex items-center gap-2">
+                          <Checkbox
+                            id={`dashboard-${agent.id}`}
+                            checked={agent.dashboardEnabled ?? false}
+                            onCheckedChange={() =>
+                              toggleDashboardEnabled(
+                                agent.id,
+                                agent.dashboardEnabled ?? false,
+                              )
+                            }
+                            data-ocid={`settings.agent_dashboard_checkbox.${i + 1}`}
+                          />
+                          <label
+                            htmlFor={`dashboard-${agent.id}`}
+                            className="text-xs font-medium cursor-pointer"
+                          >
+                            {t.enableDashboard}
+                          </label>
                         </div>
                       </div>
                     </div>

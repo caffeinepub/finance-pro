@@ -15,6 +15,7 @@ import {
 import { labels } from "../store/labels";
 import type { Customer, EMIPayment } from "../store/types";
 import { formatDate } from "../utils/dateFormat";
+import { formatINR } from "../utils/formatINR";
 
 export default function UpdateEmiPage() {
   const {
@@ -174,7 +175,7 @@ export default function UpdateEmiPage() {
                     {t.loanRepayAmount}:
                   </span>{" "}
                   <span className="font-medium">
-                    ₹{loanRepayAmount(selected).toLocaleString()}
+                    {formatINR(loanRepayAmount(selected))}
                   </span>
                 </div>
                 <div>
@@ -182,7 +183,7 @@ export default function UpdateEmiPage() {
                     {t.outstandingAmount}:
                   </span>{" "}
                   <span className="font-medium text-amber-600">
-                    ₹{outstandingAmount(selected, emiPayments).toLocaleString()}
+                    {formatINR(outstandingAmount(selected, emiPayments))}
                   </span>
                 </div>
               </div>
@@ -275,7 +276,7 @@ export default function UpdateEmiPage() {
                       ) : (
                         <div className="flex items-center gap-2">
                           <span className="font-semibold text-sm">
-                            ₹{e.amount.toLocaleString()}
+                            {formatINR(e.amount)}
                           </span>
                           {isAdmin && (
                             <button

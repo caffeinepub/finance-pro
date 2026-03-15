@@ -21,12 +21,18 @@ export default function Layout({ settingsOpen, setSettingsOpen }: Props) {
   const language = useAppStore((s) => s.language);
   const currentUser = useAppStore((s) => s.currentUser);
   const isAgent = currentUser?.role === "agent";
+  const agentDashboardEnabled = isAgent
+    ? (currentUser?.dashboardEnabled ?? false)
+    : false;
   const t = labels[language];
 
-  const [page, setPage] = useState<Page>(isAgent ? "add-entry" : "dashboard");
+  const defaultPage: Page =
+    isAgent && !agentDashboardEnabled ? "add-entry" : "dashboard";
+  const [page, setPage] = useState<Page>(defaultPage);
 
   const handlePageChange = (p: string) => {
-    if (isAgent && p === "dashboard") return;
+    // Block dashboard access for agents without dashboard permission
+    if (isAgent && p === "dashboard" && !agentDashboardEnabled) return;
     setPage(p as Page);
   };
 
@@ -35,11 +41,7 @@ export default function Layout({ settingsOpen, setSettingsOpen }: Props) {
       return <SettingsPage onClose={() => setSettingsOpen(false)} />;
     switch (page) {
       case "dashboard":
-        return isAgent ? (
-          <AddEntryPage onSuccess={() => setPage("records")} />
-        ) : (
-          <DashboardPage />
-        );
+        return <DashboardPage />;
       case "add-entry":
         return <AddEntryPage onSuccess={() => setPage("records")} />;
       case "update-emi":
@@ -63,6 +65,7 @@ export default function Layout({ settingsOpen, setSettingsOpen }: Props) {
           onChange={handlePageChange}
           t={t}
           isAgent={isAgent}
+          agentDashboardEnabled={agentDashboardEnabled}
         />
       )}
     </div>

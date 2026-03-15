@@ -15,6 +15,7 @@ import { useAppStore } from "../store/appStore";
 import { loanRepayAmount } from "../store/calculations";
 import { labels } from "../store/labels";
 import type { LoanType } from "../store/types";
+import { formatINR } from "../utils/formatINR";
 
 interface Props {
   onSuccess?: () => void;
@@ -334,7 +335,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
                   {t.loanRepayAmount}:{" "}
                 </span>
                 <span className="font-bold text-primary">
-                  ₹{preview.toLocaleString()}
+                  {formatINR(preview)}
                 </span>
               </div>
             )}

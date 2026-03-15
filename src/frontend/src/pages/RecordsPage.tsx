@@ -29,6 +29,7 @@ import {
 import { labels } from "../store/labels";
 import { formatDate } from "../utils/dateFormat";
 import { exportCustomers } from "../utils/excel";
+import { formatINR } from "../utils/formatINR";
 
 export default function RecordsPage() {
   const {
@@ -174,14 +175,12 @@ export default function RecordsPage() {
                   <div className="grid grid-cols-3 gap-1 text-xs mb-2">
                     <div>
                       <p className="text-muted-foreground">{t.loanAmount}</p>
-                      <p className="font-medium">
-                        ₹{c.loanAmount.toLocaleString()}
-                      </p>
+                      <p className="font-medium">{formatINR(c.loanAmount)}</p>
                     </div>
                     <div>
                       <p className="text-muted-foreground">{t.paidAmount}</p>
                       <p className="font-medium text-emerald-600">
-                        ₹{paid.toLocaleString()}
+                        {formatINR(paid)}
                       </p>
                     </div>
                     <div>
@@ -189,7 +188,7 @@ export default function RecordsPage() {
                         {t.outstandingAmount}
                       </p>
                       <p className="font-medium text-amber-600">
-                        ₹{outstanding.toLocaleString()}
+                        {formatINR(outstanding)}
                       </p>
                     </div>
                   </div>
@@ -226,10 +225,7 @@ export default function RecordsPage() {
                               [t.phone, c.phone],
                               [t.address, c.address],
                               [t.lineCategory, line?.name ?? ""],
-                              [
-                                t.loanAmount,
-                                `₹${c.loanAmount.toLocaleString()}`,
-                              ],
+                              [t.loanAmount, formatINR(c.loanAmount)],
                               [t.loanInterest, `${c.loanInterest}%`],
                               [
                                 t.loanType,
@@ -237,12 +233,9 @@ export default function RecordsPage() {
                                   ? t.loanTypePre
                                   : t.loanTypePost,
                               ],
-                              [t.loanRepayAmount, `₹${repay.toLocaleString()}`],
-                              [t.paidAmount, `₹${paid.toLocaleString()}`],
-                              [
-                                t.outstandingAmount,
-                                `₹${outstanding.toLocaleString()}`,
-                              ],
+                              [t.loanRepayAmount, formatINR(repay)],
+                              [t.paidAmount, formatINR(paid)],
+                              [t.outstandingAmount, formatINR(outstanding)],
                             ] as [string, string][]
                           ).map(([k, v]) => (
                             <div key={k}>
@@ -268,7 +261,7 @@ export default function RecordsPage() {
                                 >
                                   <span>{formatDate(e.paymentDate)}</span>
                                   <span className="font-medium">
-                                    ₹{e.amount.toLocaleString()}
+                                    {formatINR(e.amount)}
                                   </span>
                                 </div>
                               ))

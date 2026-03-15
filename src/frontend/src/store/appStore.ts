@@ -47,6 +47,7 @@ export type SyncStatus = "idle" | "syncing" | "synced" | "error";
 
 interface AppStore extends AppState {
   syncStatus: SyncStatus;
+  isCloudLoaded: boolean;
   setSyncStatus: (status: SyncStatus) => void;
   login: (username: string, password: string) => boolean;
   logout: () => void;
@@ -91,27 +92,59 @@ function fireAndForget(
     .catch(() => setSyncStatus("error"));
 }
 
-function userToAgentAccount(u: User) {
-  return {
-    id: u.id,
+/**
+ * Build the full users list to sync to cloud.
+ * Admin users are prefixed with __admin__ so they survive round-trips.
+ * dashboardAccess is stored as Candid optional: [] means false/unset, [true] means enabled.
+ */
+// ENCODING RULE: dashboard access is stored as a special marker "__dash_on__"
+// appended to assignedLines. This avoids changing the AgentAccount Motoko type
+// (which would break stable variable deserialization on canister upgrade).
+const DASH_MARKER = "__dash_on__";
+function buildCloudUsersPayload(users: User[]) {
+  return users.map((u) => ({
+    id: u.role === "admin" ? `__admin__${u.id}` : u.id,
     username: u.username,
     password: u.password,
-    assignedLines: u.assignedLines,
+    assignedLines: [
+      ...u.assignedLines,
+      ...(u.dashboardEnabled ? [DASH_MARKER] : []),
+    ],
+  }));
+}
+function decodeCloudAgent(a: {
+  id: string;
+  username: string;
+  password: string;
+  assignedLines: string[];
+}): User {
+  return {
+    id: a.id,
+    username: a.username,
+    password: a.password,
+    role: "agent" as const,
+    assignedLines: a.assignedLines.filter((l) => l !== DASH_MARKER),
+    dashboardEnabled: a.assignedLines.includes(DASH_MARKER),
   };
 }
 
 export const useAppStore = create<AppStore>()(
   persist(
     (set, get) => ({
+      // Business data — NOT persisted to localStorage (always loaded from cloud)
       users: defaultUsers,
       lineCategories: defaultLineCategories,
       customers: [] as Customer[],
       emiPayments: [] as EMIPayment[],
-      reportCustomFields: [],
-      savedReports: [],
+      savedReports: [] as SavedReport[],
+
+      // Local-only preferences — persisted to localStorage
+      reportCustomFields: [] as ReportCustomField[],
       currentUser: null,
-      language: "en",
+      language: "en" as "en" | "ta",
+
       syncStatus: "idle" as SyncStatus,
+      isCloudLoaded: false,
 
       setSyncStatus: (status) => set({ syncStatus: status }),
 
@@ -125,7 +158,7 @@ export const useAppStore = create<AppStore>()(
         }
         return false;
       },
-      logout: () => set({ currentUser: null }),
+      logout: () => set({ currentUser: null, isCloudLoaded: false }),
       setLanguage: (lang) => set({ language: lang }),
 
       addLineCategory: (name) => {
@@ -193,15 +226,11 @@ export const useAppStore = create<AppStore>()(
       addUser: (u) => {
         const newUser: User = { ...u, id: crypto.randomUUID() };
         set((s) => ({ users: [...s.users, newUser] }));
-        if (newUser.role === "agent") {
-          const allAgents = get()
-            .users.filter((x) => x.role === "agent")
-            .map(userToAgentAccount);
-          fireAndForget(
-            () => syncAllAgentsToCloud(allAgents),
-            get().setSyncStatus,
-          );
-        }
+        const allUsers = get().users;
+        fireAndForget(
+          () => syncAllAgentsToCloud(buildCloudUsersPayload(allUsers)),
+          get().setSyncStatus,
+        );
       },
       updateUser: (id, u) => {
         set((s) => ({
@@ -211,29 +240,19 @@ export const useAppStore = create<AppStore>()(
               ? { ...s.currentUser, ...u }
               : s.currentUser,
         }));
-        const updatedUser = get().users.find((x) => x.id === id);
-        if (updatedUser && updatedUser.role === "agent") {
-          const allAgents = get()
-            .users.filter((x) => x.role === "agent")
-            .map(userToAgentAccount);
-          fireAndForget(
-            () => syncAllAgentsToCloud(allAgents),
-            get().setSyncStatus,
-          );
-        }
+        const allUsers = get().users;
+        fireAndForget(
+          () => syncAllAgentsToCloud(buildCloudUsersPayload(allUsers)),
+          get().setSyncStatus,
+        );
       },
       deleteUser: (id) => {
-        const userToDelete = get().users.find((x) => x.id === id);
         set((s) => ({ users: s.users.filter((x) => x.id !== id) }));
-        if (userToDelete && userToDelete.role === "agent") {
-          const allAgents = get()
-            .users.filter((x) => x.role === "agent")
-            .map(userToAgentAccount);
-          fireAndForget(
-            () => syncAllAgentsToCloud(allAgents),
-            get().setSyncStatus,
-          );
-        }
+        const allUsers = get().users;
+        fireAndForget(
+          () => syncAllAgentsToCloud(buildCloudUsersPayload(allUsers)),
+          get().setSyncStatus,
+        );
       },
 
       addEMIPayment: (e) => {
@@ -307,29 +326,62 @@ export const useAppStore = create<AppStore>()(
         }
       },
 
-      restoreFromBackup: (data) =>
+      restoreFromBackup: (data) => {
         set((s) => ({
           customers: data.customers ?? s.customers,
           emiPayments: data.emiPayments ?? s.emiPayments,
           lineCategories: data.lineCategories ?? s.lineCategories,
           reportCustomFields: data.reportCustomFields ?? s.reportCustomFields,
           savedReports: data.savedReports ?? s.savedReports,
-        })),
+        }));
+        // After restoring, immediately push all data to cloud so all devices sync
+        const state = get();
+        const allUsers = buildCloudUsersPayload(state.users);
+        fireAndForget(
+          () =>
+            uploadAllLocalDataToCloud({
+              customers: state.customers,
+              emiPayments: state.emiPayments,
+              lineCategories: state.lineCategories,
+              agents: allUsers,
+              savedReports: state.savedReports,
+            }).then(() => {}),
+          get().setSyncStatus,
+        );
+      },
 
       loadAgentsPreLogin: async () => {
         try {
-          const remoteAgents = await loadAgentAccounts();
-          if (remoteAgents.length === 0) return;
+          const remoteEntries = await loadAgentAccounts();
+          if (remoteEntries.length === 0) return;
+
+          const adminEntries = remoteEntries.filter((a) =>
+            a.id.startsWith("__admin__"),
+          );
+          const agentEntries = remoteEntries.filter(
+            (a) => !a.id.startsWith("__admin__"),
+          );
+
           set((s) => {
-            const admins = s.users.filter((u) => u.role === "admin");
-            const cloudAgents: User[] = remoteAgents.map((a) => ({
-              id: a.id,
-              username: a.username,
-              password: a.password,
-              role: "agent" as const,
-              assignedLines: a.assignedLines,
-            }));
-            return { users: [...admins, ...cloudAgents] };
+            const updatedAdmins = s.users
+              .filter((u) => u.role === "admin")
+              .map((admin) => {
+                const cloudAdmin = adminEntries.find(
+                  (ae) => ae.id === `__admin__${admin.id}`,
+                );
+                if (cloudAdmin) {
+                  return {
+                    ...admin,
+                    username: cloudAdmin.username,
+                    password: cloudAdmin.password,
+                  };
+                }
+                return admin;
+              });
+
+            const cloudAgents: User[] = agentEntries.map(decodeCloudAgent);
+
+            return { users: [...updatedAdmins, ...cloudAgents] };
           });
         } catch {
           // best-effort
@@ -343,7 +395,7 @@ export const useAppStore = create<AppStore>()(
           const [
             { customers: remoteCustomers, emiPayments: remoteEMIs },
             remoteLineCategories,
-            remoteAgents,
+            remoteEntries,
             remoteSavedReports,
           ] = await Promise.all([
             loadFromCloud(),
@@ -353,9 +405,6 @@ export const useAppStore = create<AppStore>()(
           ]);
 
           set((s) => {
-            // Cloud is always authoritative — use cloud data directly.
-            // If cloud returns empty, local is replaced with empty.
-            // This ensures admin deletions propagate to all devices.
             const customers = remoteCustomers as unknown as Customer[];
             const emiPayments = remoteEMIs as unknown as EMIPayment[];
             const savedReports = remoteSavedReports as SavedReport[];
@@ -365,24 +414,47 @@ export const useAppStore = create<AppStore>()(
                 ? (remoteLineCategories as unknown as LineCategory[])
                 : s.lineCategories;
 
-            const admins = s.users.filter((u) => u.role === "admin");
+            const adminEntries = remoteEntries.filter((a) =>
+              a.id.startsWith("__admin__"),
+            );
+            const agentEntries = remoteEntries.filter(
+              (a) => !a.id.startsWith("__admin__"),
+            );
+
+            const admins = s.users
+              .filter((u) => u.role === "admin")
+              .map((admin) => {
+                const cloudAdmin = adminEntries.find(
+                  (ae) => ae.id === `__admin__${admin.id}`,
+                );
+                if (cloudAdmin) {
+                  return {
+                    ...admin,
+                    username: cloudAdmin.username,
+                    password: cloudAdmin.password,
+                  };
+                }
+                return admin;
+              });
+
             const cloudAgents: User[] =
-              remoteAgents.length > 0
-                ? remoteAgents.map((a) => ({
-                    id: a.id,
-                    username: a.username,
-                    password: a.password,
-                    role: "agent" as const,
-                    assignedLines: a.assignedLines,
-                  }))
+              agentEntries.length > 0
+                ? agentEntries.map(decodeCloudAgent)
                 : s.users.filter((u) => u.role === "agent");
 
             let updatedCurrentUser = s.currentUser;
-            if (s.currentUser && s.currentUser.role === "agent") {
-              const refreshed = cloudAgents.find(
-                (a) => a.id === s.currentUser?.id,
-              );
-              if (refreshed) updatedCurrentUser = refreshed;
+            if (s.currentUser) {
+              if (s.currentUser.role === "agent") {
+                const refreshed = cloudAgents.find(
+                  (a) => a.id === s.currentUser?.id,
+                );
+                if (refreshed) updatedCurrentUser = refreshed;
+              } else if (s.currentUser.role === "admin") {
+                const refreshedAdmin = admins.find(
+                  (a) => a.id === s.currentUser?.id,
+                );
+                if (refreshedAdmin) updatedCurrentUser = refreshedAdmin;
+              }
             }
 
             return {
@@ -392,12 +464,14 @@ export const useAppStore = create<AppStore>()(
               users: [...admins, ...cloudAgents],
               currentUser: updatedCurrentUser,
               savedReports,
+              isCloudLoaded: true,
             };
           });
 
           setSyncStatus("synced");
         } catch {
           setSyncStatus("error");
+          set({ isCloudLoaded: true }); // unblock loading screen even on error
         }
       },
 
@@ -405,19 +479,12 @@ export const useAppStore = create<AppStore>()(
         const { setSyncStatus } = get();
         setSyncStatus("syncing");
         const state = get();
-        const agents = state.users
-          .filter((u) => u.role === "agent")
-          .map((u) => ({
-            id: u.id,
-            username: u.username,
-            password: u.password,
-            assignedLines: u.assignedLines,
-          }));
+        const allUsers = buildCloudUsersPayload(state.users);
         const success = await uploadAllLocalDataToCloud({
           customers: state.customers,
           emiPayments: state.emiPayments,
           lineCategories: state.lineCategories,
-          agents,
+          agents: allUsers,
           savedReports: state.savedReports,
         });
         setSyncStatus(success ? "synced" : "error");
@@ -426,10 +493,14 @@ export const useAppStore = create<AppStore>()(
     }),
     {
       name: "finance-pro-store",
-      partialize: (state) => {
-        const { syncStatus: _syncStatus, ...rest } = state;
-        return rest;
-      },
+      // Only persist UI preferences and login session.
+      // All business data (customers, EMIs, users, lineCategories, savedReports)
+      // is intentionally excluded — cloud is the single source of truth.
+      partialize: (state) => ({
+        language: state.language,
+        currentUser: state.currentUser,
+        reportCustomFields: state.reportCustomFields,
+      }),
     },
   ),
 );

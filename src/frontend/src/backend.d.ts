@@ -34,6 +34,10 @@ export interface Customer {
     phone: string;
     lineCategoryId: string;
 }
+// NOTE: AgentAccount type must NOT gain new required fields — it would break
+// stable variable deserialization on canister upgrade, wiping all agent data.
+// Extra properties (e.g. dashboard access) are encoded as special marker
+// strings inside assignedLines: "__dash_on__" = dashboard enabled.
 export interface AgentAccount {
     id: string;
     username: string;
@@ -69,7 +73,7 @@ export interface backendInterface {
     assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
     deleteCustomer(id: string): Promise<void>;
     deleteEMIPayment(paymentId: string): Promise<void>;
-    deleteSavedReport(id: string): Promise<void>;
+    deleteSavedReport(key: string): Promise<void>;
     getCallerUserRole(): Promise<UserRole>;
     getCustomers(): Promise<Array<Customer>>;
     getEMIPayments(): Promise<Array<EMIPayment>>;

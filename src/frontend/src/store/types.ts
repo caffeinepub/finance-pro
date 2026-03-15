@@ -12,6 +12,7 @@ export interface User {
   password: string;
   role: Role;
   assignedLines: string[];
+  dashboardEnabled?: boolean;
 }
 
 export interface Customer {

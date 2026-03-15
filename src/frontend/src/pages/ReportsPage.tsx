@@ -18,6 +18,7 @@ import { labels } from "../store/labels";
 import type { SavedReport } from "../store/types";
 import { formatDate } from "../utils/dateFormat";
 import { exportReport } from "../utils/excel";
+import { formatINR } from "../utils/formatINR";
 
 interface DynField {
   id: string;
@@ -260,7 +261,7 @@ export default function ReportsPage() {
                   </Label>
                   <Input
                     className="h-8 text-xs bg-muted"
-                    value={`₹${collection.toLocaleString()}`}
+                    value={formatINR(collection)}
                     readOnly
                     data-ocid="reports.collection_input"
                   />
@@ -271,7 +272,7 @@ export default function ReportsPage() {
                   </Label>
                   <Input
                     className="h-8 text-xs bg-muted"
-                    value={`₹${loanFee.toLocaleString()}`}
+                    value={formatINR(loanFee)}
                     readOnly
                     data-ocid="reports.loan_fee_input"
                   />
@@ -319,7 +320,7 @@ export default function ReportsPage() {
                   {t.addField}
                 </Button>
                 <div className="text-xs font-semibold text-right border-t pt-1">
-                  Total: ₹{leftTotal.toLocaleString()}
+                  Total: {formatINR(leftTotal)}
                 </div>
               </CardContent>
             </Card>
@@ -333,7 +334,7 @@ export default function ReportsPage() {
                   </Label>
                   <Input
                     className="h-8 text-xs bg-muted"
-                    value={`₹${lending.toLocaleString()}`}
+                    value={formatINR(lending)}
                     readOnly
                     data-ocid="reports.lending_input"
                   />
@@ -393,7 +394,7 @@ export default function ReportsPage() {
                   {t.addField}
                 </Button>
                 <div className="text-xs font-semibold text-right border-t pt-1">
-                  Total: ₹{rightTotal.toLocaleString()}
+                  Total: {formatINR(rightTotal)}
                 </div>
               </CardContent>
             </Card>
@@ -414,7 +415,7 @@ export default function ReportsPage() {
                   reminder >= 0 ? "text-emerald-600" : "text-destructive"
                 }`}
               >
-                ₹{reminder.toLocaleString()}
+                {formatINR(reminder)}
               </p>
             </CardContent>
           </Card>
@@ -492,7 +493,7 @@ export default function ReportsPage() {
                           {t.collection}:{" "}
                         </span>
                         <span className="font-medium">
-                          ₹{r.collection.toLocaleString()}
+                          {formatINR(r.collection)}
                         </span>
                       </div>
                       <div>
@@ -500,7 +501,7 @@ export default function ReportsPage() {
                           {t.lending}:{" "}
                         </span>
                         <span className="font-medium">
-                          ₹{r.lending.toLocaleString()}
+                          {formatINR(r.lending)}
                         </span>
                       </div>
                       <div>
@@ -511,7 +512,7 @@ export default function ReportsPage() {
                               : "text-destructive"
                           }`}
                         >
-                          {t.reminder}: ₹{r.reminder.toLocaleString()}
+                          {t.reminder}: {formatINR(r.reminder)}
                         </span>
                       </div>
                     </div>
@@ -603,7 +604,7 @@ export default function ReportsPage() {
                       : "text-destructive"
                   }`}
                 >
-                  ₹{viewReport.reminder.toLocaleString()}
+                  {formatINR(viewReport.reminder)}
                 </p>
               </div>
               <p className="text-xs text-center text-muted-foreground">
@@ -633,7 +634,7 @@ function RowItem({
         {label}
       </span>
       <span className={bold ? "font-bold" : "font-medium"}>
-        ₹{value.toLocaleString()}
+        {formatINR(value)}
       </span>
     </div>
   );

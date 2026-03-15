@@ -13,6 +13,7 @@ interface Props {
   onChange: (page: string) => void;
   t: LabelSet;
   isAgent?: boolean;
+  agentDashboardEnabled?: boolean;
 }
 
 const allNavItems = [
@@ -20,28 +21,33 @@ const allNavItems = [
     id: "dashboard",
     icon: LayoutDashboard,
     labelKey: "dashboard",
-    agentHidden: true,
   },
   {
     id: "add-entry",
     icon: PlusCircle,
     labelKey: "addEntry",
-    agentHidden: false,
   },
   {
     id: "update-emi",
     icon: RefreshCw,
     labelKey: "updateEmi",
-    agentHidden: false,
   },
-  { id: "records", icon: FileText, labelKey: "records", agentHidden: false },
-  { id: "reports", icon: BarChart3, labelKey: "reports", agentHidden: false },
+  { id: "records", icon: FileText, labelKey: "records" },
+  { id: "reports", icon: BarChart3, labelKey: "reports" },
 ];
 
-export default function BottomNav({ current, onChange, t, isAgent }: Props) {
-  const navItems = isAgent
-    ? allNavItems.filter((item) => !item.agentHidden)
-    : allNavItems;
+export default function BottomNav({
+  current,
+  onChange,
+  t,
+  isAgent,
+  agentDashboardEnabled,
+}: Props) {
+  const navItems = allNavItems.filter((item) => {
+    if (item.id === "dashboard" && isAgent && !agentDashboardEnabled)
+      return false;
+    return true;
+  });
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-lg">
@@ -60,10 +66,14 @@ export default function BottomNav({ current, onChange, t, isAgent }: Props) {
               data-ocid={`nav.${item.id}.link`}
             >
               <Icon
-                className={`h-5 w-5 ${active ? "stroke-[2.5]" : "stroke-[1.5]"}`}
+                className={`h-5 w-5 ${
+                  active ? "stroke-[2.5]" : "stroke-[1.5]"
+                }`}
               />
               <span
-                className={`text-[10px] leading-none ${active ? "font-semibold" : ""}`}
+                className={`text-[10px] leading-none ${
+                  active ? "font-semibold" : ""
+                }`}
               >
                 {t[item.labelKey] ?? item.labelKey}
               </span>
