@@ -9,7 +9,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useState } from "react";
+import { Search, UserCheck, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { useAlert } from "../components/AlertPopup";
 import { useAppStore } from "../store/appStore";
 import { loanRepayAmount } from "../store/calculations";
@@ -25,6 +26,21 @@ const ERR_REQUIRED = { en: "Required", ta: "தேவை" };
 const ERR_PHONE = {
   en: "Must be exactly 10 digits",
   ta: "சரியாக 10 இலக்கங்கள் இருக்க வேண்டும்",
+};
+
+const SEARCH_LABEL = {
+  en: "Search existing customer (optional)",
+  ta: "இருக்கும் வாடிக்கையாளரை தேடுங்கள் (விருப்பமானது)",
+};
+
+const NO_RESULTS = {
+  en: "No matching customers found",
+  ta: "பொருந்தும் வாடிக்கையாளர்கள் இல்லை",
+};
+
+const AUTOFILL_HINT = {
+  en: "Customer details auto-filled. Update loan fields below.",
+  ta: "வாடிக்கையாளர் விவரங்கள் நிரப்பப்பட்டன. கீழே கடன் விவரங்களை உள்ளிடுங்கள்.",
 };
 
 type FormFields = {
@@ -43,7 +59,8 @@ type FormFields = {
 type FieldErrors = Partial<Record<keyof FormFields, string>>;
 
 export default function AddEntryPage({ onSuccess }: Props) {
-  const { lineCategories, addCustomer, language, currentUser } = useAppStore();
+  const { lineCategories, addCustomer, language, currentUser, customers } =
+    useAppStore();
   const t = labels[language];
   const { showAlert, AlertComponent } = useAlert(language);
 
@@ -71,6 +88,66 @@ export default function AddEntryPage({ onSuccess }: Props) {
 
   const [errors, setErrors] = useState<FieldErrors>({});
   const [submitted, setSubmitted] = useState(false);
+
+  // Customer search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [autofilled, setAutofilled] = useState(false);
+  const searchRef = useRef<HTMLDivElement>(null);
+
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+        setShowDropdown(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, []);
+
+  // Filter customers by selected line + search query
+  const matchingCustomers =
+    form.lineCategoryId && searchQuery.trim().length > 0
+      ? customers
+          .filter(
+            (c) =>
+              c.lineCategoryId === form.lineCategoryId &&
+              c.name.toLowerCase().includes(searchQuery.toLowerCase().trim()),
+          )
+          .slice(0, 8)
+      : [];
+
+  const handleAutofill = (customerId: string) => {
+    const c = customers.find((x) => x.id === customerId);
+    if (!c) return;
+    const updated = {
+      ...form,
+      name: c.name,
+      phone: c.phone,
+      address: c.address,
+      serialNumber: c.serialNumber,
+    };
+    setForm(updated);
+    if (submitted) {
+      setErrors(validate(updated));
+    }
+    setSearchQuery("");
+    setShowDropdown(false);
+    setAutofilled(true);
+  };
+
+  const clearAutofill = () => {
+    setForm((prev) => ({
+      ...prev,
+      name: "",
+      phone: "",
+      address: "",
+      serialNumber: "",
+    }));
+    setAutofilled(false);
+    setSearchQuery("");
+  };
 
   const preview =
     form.loanAmount && form.loanInterest
@@ -112,6 +189,10 @@ export default function AddEntryPage({ onSuccess }: Props) {
       const newErrors = validate(updated);
       setErrors(newErrors);
     }
+    // Clear autofill badge if user manually edits autofilled fields
+    if (["name", "phone", "address", "serialNumber"].includes(key)) {
+      setAutofilled(false);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -149,6 +230,8 @@ export default function AddEntryPage({ onSuccess }: Props) {
     });
     setErrors({});
     setSubmitted(false);
+    setAutofilled(false);
+    setSearchQuery("");
     onSuccess?.();
   };
 
@@ -180,7 +263,12 @@ export default function AddEntryPage({ onSuccess }: Props) {
               <Label className="text-xs">{t.lineCategory} *</Label>
               <Select
                 value={form.lineCategoryId}
-                onValueChange={(v) => handleFieldChange("lineCategoryId", v)}
+                onValueChange={(v) => {
+                  handleFieldChange("lineCategoryId", v);
+                  setSearchQuery("");
+                  setShowDropdown(false);
+                  setAutofilled(false);
+                }}
               >
                 <SelectTrigger
                   data-ocid="add_entry.line_category_select"
@@ -198,6 +286,106 @@ export default function AddEntryPage({ onSuccess }: Props) {
               </Select>
               <ErrorMsg fieldKey="lineCategoryId" />
             </div>
+
+            {/* 1b. Customer Search / Autofill (shown after line category selected) */}
+            {form.lineCategoryId && (
+              <div className="space-y-1" ref={searchRef}>
+                <Label className="text-xs flex items-center gap-1.5 text-muted-foreground">
+                  <Search className="w-3 h-3" />
+                  {SEARCH_LABEL[language]}
+                </Label>
+
+                {autofilled ? (
+                  <div
+                    data-ocid="add_entry.success_state"
+                    className="flex items-center justify-between gap-2 px-3 py-2 bg-green-50 border border-green-200 rounded-md text-xs text-green-700"
+                  >
+                    <span className="flex items-center gap-1.5">
+                      <UserCheck className="w-3.5 h-3.5 shrink-0" />
+                      {AUTOFILL_HINT[language]}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={clearAutofill}
+                      className="shrink-0 text-green-500 hover:text-green-700"
+                      aria-label="Clear autofill"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <div className="relative">
+                    <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground pointer-events-none" />
+                    <Input
+                      data-ocid="add_entry.search_input"
+                      placeholder={
+                        language === "ta"
+                          ? "பெயர் தேடுங்கள்..."
+                          : "Type customer name..."
+                      }
+                      value={searchQuery}
+                      onChange={(e) => {
+                        setSearchQuery(e.target.value);
+                        setShowDropdown(true);
+                      }}
+                      onFocus={() => {
+                        if (searchQuery.trim()) setShowDropdown(true);
+                      }}
+                      className="pl-8 text-sm h-9"
+                      autoComplete="off"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSearchQuery("");
+                          setShowDropdown(false);
+                        }}
+                        className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                        aria-label="Clear search"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                      </button>
+                    )}
+
+                    {/* Dropdown */}
+                    {showDropdown && searchQuery.trim().length > 0 && (
+                      <div
+                        data-ocid="add_entry.dropdown_menu"
+                        className="absolute z-50 top-full left-0 right-0 mt-1 bg-background border border-border rounded-md shadow-lg overflow-hidden"
+                      >
+                        {matchingCustomers.length === 0 ? (
+                          <div className="px-3 py-2.5 text-xs text-muted-foreground text-center">
+                            {NO_RESULTS[language]}
+                          </div>
+                        ) : (
+                          <ul className="max-h-48 overflow-y-auto">
+                            {matchingCustomers.map((c, idx) => (
+                              <li key={c.id}>
+                                <button
+                                  type="button"
+                                  data-ocid={`add_entry.item.${idx + 1}`}
+                                  className="w-full text-left px-3 py-2.5 hover:bg-accent active:bg-accent/80 transition-colors border-b border-border/40 last:border-0"
+                                  onClick={() => handleAutofill(c.id)}
+                                >
+                                  <p className="text-sm font-medium truncate">
+                                    {c.name}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {c.phone}
+                                    {c.address ? ` · ${c.address}` : ""}
+                                  </p>
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* 2. Loan Date (moved to 2nd position) */}
             <div className="space-y-1">

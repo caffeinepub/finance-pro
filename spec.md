@@ -1,26 +1,27 @@
 # Finance Pro
 
 ## Current State
-Saved reports are stored only in local browser storage (zustand persist). Customers, EMIs, and line categories are cloud-synced via ICP Motoko backend. Saved reports are not synced — each device has its own report history.
+AddEntryPage.tsx has a form with fields: Line Category, Loan Date, Serial Number, Phone, Customer Name, Address, Loan Amount, Loan Interest, Loan Fee, Loan Type. All fields are filled manually every time.
 
 ## Requested Changes (Diff)
 
 ### Add
-- `SavedReport` type in Motoko backend with fields: id, reportDate, lineName, preAmount, collection, loanFee, lending, expense, dynLeftJson (JSON text), dynRightJson (JSON text), leftTotal, rightTotal, reminder, savedAt, savedBy
-- Backend key: `lineName:reportDate` — last write overwrites (same line+date = overwrite)
-- Backend methods: `addOrUpdateSavedReport`, `getSavedReports`, `deleteSavedReport`
-- cloudSync.ts: `syncSavedReportToCloud`, `deleteSavedReportFromCloud`, `loadSavedReports`
+- After Line Category is selected, show a "Search existing customer" input/dropdown in AddEntryPage that filters customers belonging to the selected line category by name.
+- When a customer is selected from the search results, auto-fill: Serial Number, Customer Name, Phone, and Address fields.
+- Loan Amount, Loan Interest, Loan Fee, Loan Date, and Loan Type remain blank (these are loan-specific and should be entered fresh for the new loan).
+- The search is optional — user can still type all fields manually without using it.
+- Bilingual label support (English/Tamil).
 
 ### Modify
-- `main.mo`: add SavedReport stable storage, map, pre/postupgrade hooks, and CRUD methods
-- `backend.did.js` and `backend.did.d.ts`: add SavedReport type and three new methods
-- `appStore.ts`: saveReport triggers cloud sync; deleteSavedReport triggers cloud delete; loadCloudData loads saved reports from cloud (cloud overwrites local, filtered by assigned lines for agents)
+- AddEntryPage.tsx: add customer search/autofill UI after line category field.
 
 ### Remove
-- Nothing removed
+- Nothing.
 
 ## Implementation Plan
-1. Update `main.mo` to add SavedReport type + stable storage + CRUD methods (key = lineName:reportDate for last-write-wins)
-2. Update Candid IDL files (backend.did.js, backend.did.d.ts) with SavedReport type and methods
-3. Update cloudSync.ts with saved report sync/load functions
-4. Update appStore.ts: saveReport syncs to cloud, deleteSavedReport deletes from cloud, loadCloudData also loads saved reports and merges (cloud overwrites local for same id)
+1. In AddEntryPage.tsx, after Line Category field, add an optional "Search & autofill customer" section.
+2. Filter `customers` from store by selected `lineCategoryId`.
+3. Show a text input that filters those customers by name (case-insensitive).
+4. Show dropdown list of matches; on selection, fill name, phone, address, serialNumber.
+5. Add bilingual labels for the search field.
+6. The autofill section only appears once a line category is selected.
