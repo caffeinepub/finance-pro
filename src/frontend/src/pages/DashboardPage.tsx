@@ -31,6 +31,7 @@ export default function DashboardPage() {
   );
 
   const today = new Date().toISOString().split("T")[0];
+  const todayMs = new Date(today).getTime();
 
   // Filter customers by selected line
   const filteredCustomers =
@@ -40,10 +41,18 @@ export default function DashboardPage() {
 
   const filteredCustomerIds = new Set(filteredCustomers.map((c) => c.id));
 
-  const totalCustomers = filteredCustomers.length;
-  const activeLoans = filteredCustomers.filter(
+  // Total Customers = only customers with Active loan status (outstanding > 0)
+  const totalCustomers = filteredCustomers.filter(
     (c) => outstandingAmount(c, emiPayments) > 0,
   ).length;
+
+  // Active Customers = customers where (current date - loan date) <= 120 days
+  const activeLoans = filteredCustomers.filter((c) => {
+    const loanDateMs = new Date(c.createdAt).getTime();
+    const diffDays = (todayMs - loanDateMs) / (1000 * 60 * 60 * 24);
+    return diffDays <= 120;
+  }).length;
+
   const totalLoanAmount = filteredCustomers.reduce(
     (s, c) => s + c.loanAmount,
     0,

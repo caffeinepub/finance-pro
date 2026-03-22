@@ -121,12 +121,12 @@ export default function AddEntryPage({ onSuccess }: Props) {
   const handleAutofill = (customerId: string) => {
     const c = customers.find((x) => x.id === customerId);
     if (!c) return;
+    // Only autofill name, phone, address — serial number must be entered manually
     const updated = {
       ...form,
       name: c.name,
       phone: c.phone,
       address: c.address,
-      serialNumber: c.serialNumber,
     };
     setForm(updated);
     if (submitted) {
@@ -143,7 +143,6 @@ export default function AddEntryPage({ onSuccess }: Props) {
       name: "",
       phone: "",
       address: "",
-      serialNumber: "",
     }));
     setAutofilled(false);
     setSearchQuery("");
@@ -190,7 +189,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
       setErrors(newErrors);
     }
     // Clear autofill badge if user manually edits autofilled fields
-    if (["name", "phone", "address", "serialNumber"].includes(key)) {
+    if (["name", "phone", "address"].includes(key)) {
       setAutofilled(false);
     }
   };
