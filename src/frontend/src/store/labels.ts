@@ -82,6 +82,7 @@ export const labels = {
     invalidDate: "Only current date allowed",
     emiBlockedByReport:
       "EMI update not allowed. Report already submitted for {line} today.",
+    loanAlreadyClosed: "Cannot add EMI. This loan is already closed.",
     unlockLine: "Unlock",
     lockLine: "Lock",
     submit: "Submit",
@@ -186,6 +187,7 @@ export const labels = {
     invalidDate: "தற்போதைய தேதி மட்டுமே அனுமதிக்கப்படுகிறது",
     emiBlockedByReport:
       "EMI புதுப்பிக்க முடியாது. {line} இன்று அறிக்கை சமர்ப்பிக்கப்பட்டது.",
+    loanAlreadyClosed: "EMI சேர்க்க முடியாது. இந்த கடன் ஏற்கனவே மூடப்பட்டது.",
     unlockLine: "திறக்கவும்",
     lockLine: "பூட்டவும்",
     submit: "சமர்ப்பி",

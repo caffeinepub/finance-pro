@@ -64,6 +64,10 @@ export default function UpdateEmiPage() {
 
   const handleSave = () => {
     if (!selected) return;
+    if (outstandingAmount(selected, emiPayments) <= 0) {
+      showAlert(t.loanAlreadyClosed, "error");
+      return;
+    }
     if (!amount || Number(amount) <= 0) {
       showAlert(t.enterValidAmount, "error");
       return;
