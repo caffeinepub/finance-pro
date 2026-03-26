@@ -17,6 +17,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
   Check,
+  CloudUpload,
   Download,
   Loader2,
   Pencil,
@@ -47,6 +48,7 @@ export default function SettingsPage({ onClose }: Props) {
     emiPayments,
     reportCustomFields,
     restoreFromBackup,
+    uploadToCloud,
   } = store;
   const t = labels[language];
   const isAdmin = currentUser?.role === "admin";
@@ -78,6 +80,8 @@ export default function SettingsPage({ onClose }: Props) {
   const [restoreDialogOpen, setRestoreDialogOpen] = useState(false);
   const [pendingRestoreData, setPendingRestoreData] = useState<any>(null);
   const [isRestoring, setIsRestoring] = useState(false);
+  const [restoreUploadFailed, setRestoreUploadFailed] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   const handleDownloadBackup = () => {
     const backupData = {
@@ -141,19 +145,23 @@ export default function SettingsPage({ onClose }: Props) {
   const handleConfirmRestore = async () => {
     if (!pendingRestoreData) return;
     setIsRestoring(true);
+    setRestoreUploadFailed(false);
+    const dataToRestore = pendingRestoreData;
     setPendingRestoreData(null);
     setRestoreDialogOpen(false);
 
     const success = await restoreFromBackup({
-      customers: pendingRestoreData.customers,
-      emiPayments: pendingRestoreData.emiPayments,
-      lineCategories: pendingRestoreData.lineCategories,
-      reportCustomFields: pendingRestoreData.reportCustomFields,
+      customers: dataToRestore.customers,
+      emiPayments: dataToRestore.emiPayments,
+      lineCategories: dataToRestore.lineCategories,
+      reportCustomFields: dataToRestore.reportCustomFields,
+      savedReports: dataToRestore.savedReports,
     });
 
     setIsRestoring(false);
 
     if (success) {
+      setRestoreUploadFailed(false);
       showAlert(
         language === "ta"
           ? "தரவு மீட்டமைக்கப்பட்டு மேகக் கணினியில் பதிவேற்றப்பட்டது"
@@ -161,10 +169,33 @@ export default function SettingsPage({ onClose }: Props) {
         "success",
       );
     } else {
+      setRestoreUploadFailed(true);
       showAlert(
         language === "ta"
           ? "தரவு மீட்டமைக்கப்பட்டது, ஆனால் மேக பதிவேற்றம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்."
           : "Data restored but cloud upload failed. Please try again.",
+        "error",
+      );
+    }
+  };
+
+  const handleRetryUpload = async () => {
+    setIsRetrying(true);
+    const success = await uploadToCloud();
+    setIsRetrying(false);
+    if (success) {
+      setRestoreUploadFailed(false);
+      showAlert(
+        language === "ta"
+          ? "மேகக் கணினியில் வெற்றிகரமாக பதிவேற்றப்பட்டது"
+          : "Upload to cloud successful",
+        "success",
+      );
+    } else {
+      showAlert(
+        language === "ta"
+          ? "மேக பதிவேற்றம் தோல்வியடைந்தது. மீண்டும் முயற்சிக்கவும்."
+          : "Cloud upload failed. Please try again.",
         "error",
       );
     }
@@ -386,6 +417,24 @@ export default function SettingsPage({ onClose }: Props) {
                   ? "பேக்கப்பிலிருந்து மீட்டமை"
                   : "Restore from Backup"}
               </Button>
+              {restoreUploadFailed && (
+                <Button
+                  className="w-full border-amber-500 text-amber-600 hover:bg-amber-50 hover:text-amber-700"
+                  variant="outline"
+                  onClick={handleRetryUpload}
+                  disabled={isRetrying}
+                  data-ocid="settings.retry_upload_button"
+                >
+                  {isRetrying ? (
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  ) : (
+                    <CloudUpload className="h-4 w-4 mr-2" />
+                  )}
+                  {language === "ta"
+                    ? "மீண்டும் மேகத்தில் பதிவேற்று"
+                    : "Retry Upload to Cloud"}
+                </Button>
+              )}
               <p className="text-xs text-muted-foreground">
                 {language === "ta"
                   ? "💡 பேக்கப் கோப்பை Google Drive இல் பதிவேற்றவும்: drive.google.com → புதியது → கோப்பு பதிவேற்றம்."

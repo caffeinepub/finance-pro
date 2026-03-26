@@ -80,6 +80,10 @@ export const labels = {
     emiUpdated: "EMI updated successfully",
     alreadyPaid: "EMI already recorded for this customer today",
     invalidDate: "Only current date allowed",
+    emiBlockedByReport:
+      "EMI update not allowed. Report already submitted for {line} today.",
+    unlockLine: "Unlock",
+    lockLine: "Lock",
     submit: "Submit",
     viewDetails: "View Details",
     close: "Close",
@@ -180,6 +184,10 @@ export const labels = {
     emiUpdated: "EMI வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
     alreadyPaid: "இன்று இந்த வாடிக்கையாளருக்கு EMI பதிவு செய்யப்பட்டது",
     invalidDate: "தற்போதைய தேதி மட்டுமே அனுமதிக்கப்படுகிறது",
+    emiBlockedByReport:
+      "EMI புதுப்பிக்க முடியாது. {line} இன்று அறிக்கை சமர்ப்பிக்கப்பட்டது.",
+    unlockLine: "திறக்கவும்",
+    lockLine: "பூட்டவும்",
     submit: "சமர்ப்பி",
     viewDetails: "விவரங்கள் பார்",
     close: "மூடு",

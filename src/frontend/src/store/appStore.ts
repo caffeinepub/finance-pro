@@ -70,6 +70,9 @@ interface AppStore extends AppState {
   deleteReportCustomField: (id: string) => void;
   saveReport: (r: Omit<SavedReport, "id" | "savedAt">) => void;
   deleteSavedReport: (id: string) => void;
+  unlockedReportLines: string[];
+  unlockReportLine: (key: string) => void;
+  lockReportLine: (key: string) => void;
   restoreFromBackup: (data: {
     customers?: Customer[];
     emiPayments?: EMIPayment[];
@@ -137,6 +140,9 @@ export const useAppStore = create<AppStore>()(
       customers: [] as Customer[],
       emiPayments: [] as EMIPayment[],
       savedReports: [] as SavedReport[],
+      unlockedReportLines: JSON.parse(
+        localStorage.getItem("financeProUnlockedLines") || "[]",
+      ) as string[],
 
       // Local-only preferences — persisted to localStorage
       reportCustomFields: [] as ReportCustomField[],
@@ -324,6 +330,20 @@ export const useAppStore = create<AppStore>()(
             get().setSyncStatus,
           );
         }
+      },
+
+      unlockReportLine: (key) => {
+        const next = [
+          ...get().unlockedReportLines.filter((k) => k !== key),
+          key,
+        ];
+        localStorage.setItem("financeProUnlockedLines", JSON.stringify(next));
+        set({ unlockedReportLines: next });
+      },
+      lockReportLine: (key) => {
+        const next = get().unlockedReportLines.filter((k) => k !== key);
+        localStorage.setItem("financeProUnlockedLines", JSON.stringify(next));
+        set({ unlockedReportLines: next });
       },
 
       restoreFromBackup: async (data): Promise<boolean> => {

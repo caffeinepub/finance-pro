@@ -202,6 +202,8 @@ export async function loadSavedReports(): Promise<SavedReport[]> {
  * Upload ALL local data to cloud in one shot using bulk-replace methods.
  * Each data type is sent as a single canister call — same reliable pattern as
  * setLineCategories / setAgentAccounts. Returns true on success, false on error.
+ * Always resets the actor cache before attempting to avoid stale connections.
+ * Retries up to 3 times with a 2-second delay between attempts.
  */
 export async function uploadAllLocalDataToCloud(params: {
   customers: Customer[];
@@ -210,16 +212,25 @@ export async function uploadAllLocalDataToCloud(params: {
   agents: AgentAccount[];
   savedReports: SavedReport[];
 }): Promise<boolean> {
-  try {
-    const actor = await getActor();
-    // Use bulk-replace calls — 5 total calls regardless of data size
-    await actor.setCustomers(params.customers);
-    await actor.setEMIPayments(params.emiPayments);
-    await actor.setLineCategories(params.lineCategories);
-    await actor.setAgentAccounts(params.agents);
-    await actor.setSavedReports(params.savedReports.map(savedReportToCloud));
-    return true;
-  } catch {
-    return false;
+  // Always reset cache to force fresh actor — avoids stale/broken connection
+  actorCache = null;
+
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      const actor = await getActor();
+      // Use bulk-replace calls — 5 total calls regardless of data size
+      await actor.setCustomers(params.customers);
+      await actor.setEMIPayments(params.emiPayments);
+      await actor.setLineCategories(params.lineCategories);
+      await actor.setAgentAccounts(params.agents);
+      await actor.setSavedReports(params.savedReports.map(savedReportToCloud));
+      return true;
+    } catch {
+      actorCache = null; // reset on failure so next attempt gets fresh actor
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 2000));
+      }
+    }
   }
+  return false;
 }

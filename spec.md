@@ -1,27 +1,26 @@
 # Finance Pro
 
 ## Current State
-AddEntryPage.tsx has a form with fields: Line Category, Loan Date, Serial Number, Phone, Customer Name, Address, Loan Amount, Loan Interest, Loan Fee, Loan Type. All fields are filled manually every time.
+Finance Pro is a cloud-only PWA for lending/finance businesses. Saved reports are stored per line category + date. Agents can currently update EMIs for any customer on their assigned lines at any time.
 
 ## Requested Changes (Diff)
 
 ### Add
-- After Line Category is selected, show a "Search existing customer" input/dropdown in AddEntryPage that filters customers belonging to the selected line category by name.
-- When a customer is selected from the search results, auto-fill: Serial Number, Customer Name, Phone, and Address fields.
-- Loan Amount, Loan Interest, Loan Fee, Loan Date, and Loan Type remain blank (these are loan-specific and should be entered fresh for the new loan).
-- The search is optional — user can still type all fields manually without using it.
-- Bilingual label support (English/Tamil).
+- EMI lock enforcement in UpdateEmiPage: when an agent attempts to save an EMI for a customer whose line category has a saved report for today's date, block the action with a popup: "EMI update not allowed. Report already submitted for [Line Name] today."
+- `unlockedReportLines: string[]` state in appStore -- list of `lineName|YYYY-MM-DD` keys admin has explicitly unlocked. Persisted in localStorage.
+- `unlockReportLine(key: string)` and `lockReportLine(key: string)` actions in appStore.
+- Admin lock/unlock toggle button in Saved Reports list (ReportsPage) -- visible only to admin, only for reports dated today.
+- New labels: `emiBlockedByReport`, `unlockLine`, `lockLine` in both en and ta.
 
 ### Modify
-- AddEntryPage.tsx: add customer search/autofill UI after line category field.
+- UpdateEmiPage handleSave: if agent, check if line is locked before saving.
+- ReportsPage Saved Reports list: add lock/unlock icon button for admin on today's reports.
 
 ### Remove
 - Nothing.
 
 ## Implementation Plan
-1. In AddEntryPage.tsx, after Line Category field, add an optional "Search & autofill customer" section.
-2. Filter `customers` from store by selected `lineCategoryId`.
-3. Show a text input that filters those customers by name (case-insensitive).
-4. Show dropdown list of matches; on selection, fill name, phone, address, serialNumber.
-5. Add bilingual labels for the search field.
-6. The autofill section only appears once a line category is selected.
+1. Add unlockedReportLines state + actions to appStore with localStorage persistence.
+2. Add label keys to labels.ts.
+3. Update UpdateEmiPage handleSave to check lock.
+4. Update ReportsPage Saved Reports list for admin lock/unlock UI.
