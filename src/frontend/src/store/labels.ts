@@ -12,10 +12,12 @@ export const labels = {
     username: "Username",
     password: "Password",
     totalCustomers: "Total Customers",
-    activeLoans: "Active Loans",
+    activeLoans: "Active Customers",
     totalLoanAmount: "Total Loan Amount",
     totalEmiCollected: "Total EMI Collected",
     todayCollection: "Today's Collection",
+    outstandingLoan: "Outstanding Loan",
+    activeLoansAmount: "Active Loans",
     recentActivity: "Recent Activity",
     serialNumber: "Serial Number",
     customerName: "Customer Name",
@@ -62,8 +64,8 @@ export const labels = {
     currentPassword: "Current Password",
     newPassword: "New Password",
     confirmPassword: "Confirm Password",
-    loanTypePre: "Pre (ஃபைனான்ஸ்)",
-    loanTypePost: "Post (கந்து)",
+    loanTypePre: "Pre (\u0b83\u0baa\u0bc8\u0ba9\u0bbe\u0ba9\u0bcd\u0bb8\u0bcd)",
+    loanTypePost: "Post (\u0ba4\u0ba3\u0bcd\u0b9f\u0bb2\u0bcd)",
     all: "All",
     active: "Active",
     completed: "Completed",
@@ -91,6 +93,8 @@ export const labels = {
     customerAdded: "Customer added successfully",
     fillRequired: "Please fill all required fields",
     enterValidAmount: "Enter a valid amount",
+    amountExceedsOutstanding:
+      "Amount exceeds outstanding balance. Maximum allowed: \u20b9{max}",
     backupRestored: "Data restored successfully",
     invalidBackupFile: "Invalid backup file format",
     backupReadError: "Could not read the backup file",
@@ -105,109 +109,164 @@ export const labels = {
     allLines: "All Lines",
   },
   ta: {
-    appName: "ஃபைனான்ஸ் ப்ரோ",
-    dashboard: "டாஷ்போர்டு",
-    addEntry: "புதிய பதிவு",
-    updateEmi: "EMI புதுப்பி",
-    records: "பதிவுகள்",
-    reports: "திட்டம்",
-    settings: "அமைப்புகள்",
-    logout: "வெளியேறு",
-    login: "உள்நுழைவு",
-    username: "பயனர் பெயர்",
-    password: "கடவுச்சொல்",
-    totalCustomers: "மொத்த வாடிக்கையாளர்கள்",
-    activeLoans: "செயலில் உள்ள கடன்கள்",
-    totalLoanAmount: "மொத்த கடன் தொகை",
-    totalEmiCollected: "மொத்த EMI வசூல்",
-    todayCollection: "இன்றைய வசூல்",
-    recentActivity: "சமீபத்திய செயல்பாடு",
-    serialNumber: "வரிசை எண்",
-    customerName: "வாடிக்கையாளர் பெயர்",
-    phone: "தொலைபேசி",
-    address: "முகவரி",
-    loanAmount: "கடன் தொகை",
-    loanInterest: "வட்டி (%)",
-    loanType: "கடன் வகை",
-    lineCategory: "வரிசை பிரிவு",
-    loanRepayAmount: "திருப்பிச் செலுத்த வேண்டிய தொகை",
-    paidAmount: "செலுத்திய தொகை",
-    outstandingAmount: "நிலுவைத் தொகை",
-    loanStatus: "நிலை",
-    emiHistory: "EMI வரலாறு",
-    searchCustomer: "பெயர், வரிசை அல்லது முகவரி மூலம் தேடு...",
-    filterByLine: "வரிசையால் வடிகட்டு",
-    preAmount: "முன் இருப்பு",
-    collection: "வசூல்",
-    loanFee: "மகிமை",
-    lending: "அடைப்பு",
-    expense: "செலவு",
-    reminder: "மீதி இருப்பு",
-    addField: "+ புலம் சேர்",
-    exportExcel: "Excel ஏற்றுமதி",
-    saveReport: "அறிக்கை சேமி",
-    savedReports: "சேமித்த அறிக்கைகள்",
-    noSavedReports: "சேமித்த அறிக்கைகள் இல்லை",
-    reportSaved: "அறிக்கை வெற்றிகரமாக சேமிக்கப்பட்டது",
-    reportAlreadySaved: "அறிக்கை ஏற்கனவே உருவாக்கப்பட்டு சேமிக்கப்பட்டது",
-    saveEmi: "EMI சேமி",
-    date: "தேதி",
-    amount: "தொகை",
-    save: "சேமி",
-    cancel: "ரத்து",
-    edit: "திருத்து",
-    delete: "நீக்கு",
-    add: "சேர்",
-    changePassword: "கடவுச்சொல் மாற்று",
-    manageAgents: "முகவர்களை நிர்வகி",
-    assignLines: "வரிசைகள் ஒதுக்கு",
-    renameLines: "வரிசைகள் மறுபெயரிடு",
-    addAgent: "முகவர் சேர்",
-    addLine: "வரிசை சேர்",
-    currentPassword: "தற்போதைய கடவுச்சொல்",
-    newPassword: "புதிய கடவுச்சொல்",
-    confirmPassword: "கடவுச்சொல் உறுதிப்படுத்து",
-    loanTypePre: "ஃபைனான்ஸ்",
-    loanTypePost: "கந்து",
-    all: "அனைத்தும்",
-    active: "செயலில்",
-    completed: "முடிந்தது",
-    role: "பங்கு",
-    agent: "முகவர்",
-    admin: "நிர்வாகி",
-    lines: "வரிசைகள்",
-    general: "பொது",
-    agents: "முகவர்கள்",
-    selectLine: "வரிசை தேர்வு",
-    selectDate: "தேதி தேர்வு",
-    noCustomers: "வாடிக்கையாளர்கள் இல்லை",
-    emiSaved: "EMI வெற்றிகரமாக சேமிக்கப்பட்டது",
-    emiUpdated: "EMI வெற்றிகரமாக புதுப்பிக்கப்பட்டது",
-    alreadyPaid: "இன்று இந்த வாடிக்கையாளருக்கு EMI பதிவு செய்யப்பட்டது",
-    invalidDate: "தற்போதைய தேதி மட்டுமே அனுமதிக்கப்படுகிறது",
+    appName:
+      "\u0b83\u0baa\u0bc8\u0ba9\u0bbe\u0ba9\u0bcd\u0bb8\u0bcd \u0baa\u0bcd\u0bb0\u0bcb",
+    dashboard: "\u0b9f\u0bbe\u0bb7\u0bcd\u0baa\u0bcb\u0bb0\u0bcd\u0b9f\u0bc1",
+    addEntry: "\u0baa\u0bc1\u0ba4\u0bbf\u0baf \u0baa\u0ba4\u0bbf\u0bb5\u0bc1",
+    updateEmi: "EMI \u0baa\u0bc1\u0ba4\u0bc1\u0baa\u0bcd\u0baa\u0bbf",
+    records: "\u0baa\u0ba4\u0bbf\u0bb5\u0bc1\u0b95\u0bb3\u0bcd",
+    reports: "\u0ba4\u0bbf\u0b9f\u0bcd\u0b9f\u0bae\u0bcd",
+    settings: "\u0b85\u0bae\u0bc8\u0baa\u0bcd\u0baa\u0bc1\u0b95\u0bb3\u0bcd",
+    logout: "\u0bb5\u0bc6\u0bb3\u0bbf\u0baf\u0bc7\u0bb1\u0bc1",
+    login: "\u0b89\u0bb3\u0bcd\u0ba8\u0bc1\u0bb4\u0bc8\u0bb5\u0bc1",
+    username: "\u0baa\u0baf\u0ba9\u0bb0\u0bcd \u0baa\u0bc6\u0baf\u0bb0\u0bcd",
+    password: "\u0b95\u0b9f\u0bb5\u0bc1\u0b9a\u0bcd\u0b9a\u0bca\u0bb2\u0bcd",
+    totalCustomers:
+      "\u0bae\u0bca\u0ba4\u0bcd\u0ba4 \u0bb5\u0bbe\u0b9f\u0bbf\u0b95\u0bcd\u0b95\u0bc8\u0baf\u0bbe\u0bb3\u0bb0\u0bcd\u0b95\u0bb3\u0bcd",
+    activeLoans:
+      "\u0b9a\u0bc6\u0baf\u0bb2\u0bbf\u0bb2\u0bcd \u0b89\u0bb3\u0bcd\u0bb3 \u0bb5\u0bbe\u0b9f\u0bbf\u0b95\u0bcd\u0b95\u0bc8\u0baf\u0bbe\u0bb3\u0bb0\u0bcd\u0b95\u0bb3\u0bcd",
+    totalLoanAmount:
+      "\u0bae\u0bca\u0ba4\u0bcd\u0ba4 \u0b95\u0b9f\u0ba9\u0bcd \u0ba4\u0bca\u0b95\u0bc8",
+    totalEmiCollected:
+      "\u0bae\u0bca\u0ba4\u0bcd\u0ba4 EMI \u0bb5\u0b9a\u0bc2\u0bb2\u0bcd",
+    todayCollection:
+      "\u0b87\u0ba9\u0bcd\u0bb1\u0bc8\u0baf \u0bb5\u0b9a\u0bc2\u0bb2\u0bcd",
+    outstandingLoan:
+      "\u0ba8\u0bbf\u0bb2\u0bc1\u0bb5\u0bc8 \u0b95\u0b9f\u0ba9\u0bcd",
+    activeLoansAmount:
+      "\u0b9a\u0bc6\u0baf\u0bb2\u0bbf\u0bb2\u0bcd \u0b89\u0bb3\u0bcd\u0bb3 \u0b95\u0b9f\u0ba9\u0bcd\u0b95\u0bb3\u0bcd",
+    recentActivity:
+      "\u0b9a\u0bae\u0bc0\u0baa\u0ba4\u0bcd\u0ba4\u0bbf\u0baf \u0b9a\u0bc6\u0baf\u0bb2\u0bcd\u0baa\u0bbe\u0b9f\u0bc1",
+    serialNumber: "\u0bb5\u0bb0\u0bbf\u0b9a\u0bc8 \u0b8e\u0ba3\u0bcd",
+    customerName:
+      "\u0bb5\u0bbe\u0b9f\u0bbf\u0b95\u0bcd\u0b95\u0bc8\u0baf\u0bbe\u0bb3\u0bb0\u0bcd \u0baa\u0bc6\u0baf\u0bb0\u0bcd",
+    phone: "\u0ba4\u0bca\u0bb2\u0bc8\u0baa\u0bc7\u0b9a\u0bbf",
+    address: "\u0bae\u0bc1\u0b95\u0bb5\u0bb0\u0bbf",
+    loanAmount: "\u0b95\u0b9f\u0ba9\u0bcd \u0ba4\u0bca\u0b95\u0bc8",
+    loanInterest: "\u0bb5\u0b9f\u0bcd\u0b9f\u0bbf (%)",
+    loanType: "\u0b95\u0b9f\u0ba9\u0bcd \u0bb5\u0b95\u0bc8",
+    lineCategory:
+      "\u0bb5\u0bb0\u0bbf\u0b9a\u0bc8 \u0baa\u0bbf\u0bb0\u0bbf\u0bb5\u0bc1",
+    loanRepayAmount:
+      "\u0ba4\u0bbf\u0bb0\u0bc1\u0baa\u0bcd\u0baa\u0bbf\u0b9a\u0bcd \u0b9a\u0bc6\u0bb2\u0bc1\u0ba4\u0bcd\u0ba4 \u0bb5\u0bc7\u0ba3\u0bcd\u0b9f\u0bbf\u0baf \u0ba4\u0bca\u0b95\u0bc8",
+    paidAmount:
+      "\u0b9a\u0bc6\u0bb2\u0bc1\u0ba4\u0bcd\u0ba4\u0bbf\u0baf \u0ba4\u0bca\u0b95\u0bc8",
+    outstandingAmount:
+      "\u0ba8\u0bbf\u0bb2\u0bc1\u0bb5\u0bc8\u0ba4\u0bcd \u0ba4\u0bca\u0b95\u0bc8",
+    loanStatus: "\u0ba8\u0bbf\u0bb2\u0bc8",
+    emiHistory: "EMI \u0bb5\u0bb0\u0bb2\u0bbe\u0bb1\u0bc1",
+    searchCustomer:
+      "\u0baa\u0bc6\u0baf\u0bb0\u0bcd, \u0bb5\u0bb0\u0bbf\u0b9a\u0bc8 \u0b85\u0bb2\u0bcd\u0bb2\u0ba4\u0bc1 \u0bae\u0bc1\u0b95\u0bb5\u0bb0\u0bbf \u0bae\u0bc2\u0bb2\u0bae\u0bcd \u0ba4\u0bc7\u0b9f\u0bc1...",
+    filterByLine:
+      "\u0bb5\u0bb0\u0bbf\u0b9a\u0bc8\u0baf\u0bbe\u0bb2\u0bcd \u0bb5\u0b9f\u0bbf\u0b95\u0b9f\u0bcd\u0b9f\u0bc1",
+    preAmount:
+      "\u0bae\u0bc1\u0ba9\u0bcd \u0b87\u0bb0\u0bc1\u0baa\u0bcd\u0baa\u0bc1",
+    collection: "\u0bb5\u0b9a\u0bc2\u0bb2\u0bcd",
+    loanFee: "\u0bae\u0b95\u0bbf\u0bae\u0bc8",
+    lending: "\u0b85\u0b9f\u0bc8\u0baa\u0bcd\u0baa\u0bc1",
+    expense: "\u0b9a\u0bc6\u0bb2\u0bb5\u0bc1",
+    reminder:
+      "\u0bae\u0bc0\u0ba4\u0bbf \u0b87\u0bb0\u0bc1\u0baa\u0bcd\u0baa\u0bc1",
+    addField: "+ \u0baa\u0bc1\u0bb2\u0bae\u0bcd \u0b9a\u0bc7\u0bb0\u0bcd",
+    exportExcel: "Excel \u0b8f\u0bb1\u0bcd\u0bb1\u0bc1\u0bae\u0ba4\u0bbf",
+    saveReport:
+      "\u0b85\u0bb1\u0bbf\u0b95\u0bcd\u0b95\u0bc8 \u0b9a\u0bc7\u0bae\u0bbf",
+    savedReports:
+      "\u0b9a\u0bc7\u0bae\u0bbf\u0ba4\u0bcd\u0ba4 \u0b85\u0bb1\u0bbf\u0b95\u0bcd\u0b95\u0bc8\u0b95\u0bb3\u0bcd",
+    noSavedReports:
+      "\u0b9a\u0bc7\u0bae\u0bbf\u0ba4\u0bcd\u0ba4 \u0b85\u0bb1\u0bbf\u0b95\u0bcd\u0b95\u0bc8\u0b95\u0bb3\u0bcd \u0b87\u0bb2\u0bcd\u0bb2\u0bc8",
+    reportSaved:
+      "\u0b85\u0bb1\u0bbf\u0b95\u0bcd\u0b95\u0bc8 \u0bb5\u0bc6\u0bb1\u0bcd\u0bb1\u0bbf\u0b95\u0bb0\u0bae\u0bbe\u0b95 \u0b9a\u0bc7\u0bae\u0bbf\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0ba4\u0bc1",
+    reportAlreadySaved:
+      "\u0b85\u0bb1\u0bbf\u0b95\u0bcd\u0b95\u0bc8 \u0b8f\u0bb1\u0bcd\u0b95\u0ba9\u0bb5\u0bc7 \u0b89\u0bb0\u0bc1\u0bb5\u0bbe\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0bc1 \u0b9a\u0bc7\u0bae\u0bbf\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0ba4\u0bc1",
+    saveEmi: "EMI \u0b9a\u0bc7\u0bae\u0bbf",
+    date: "\u0ba4\u0bc7\u0ba4\u0bbf",
+    amount: "\u0ba4\u0bca\u0b95\u0bc8",
+    save: "\u0b9a\u0bc7\u0bae\u0bbf",
+    cancel: "\u0bb0\u0ba4\u0bcd\u0ba4\u0bc1",
+    edit: "\u0ba4\u0bbf\u0bb0\u0bc1\u0ba4\u0bcd\u0ba4\u0bc1",
+    delete: "\u0ba8\u0bc0\u0b95\u0bcd\u0b95\u0bc1",
+    add: "\u0b9a\u0bc7\u0bb0\u0bcd",
+    changePassword:
+      "\u0b95\u0b9f\u0bb5\u0bc1\u0b9a\u0bcd\u0b9a\u0bca\u0bb2\u0bcd \u0bae\u0bbe\u0bb1\u0bcd\u0bb1\u0bc1",
+    manageAgents:
+      "\u0bae\u0bc1\u0b95\u0bb5\u0bb0\u0bcd\u0b95\u0bb3\u0bc8 \u0ba8\u0bbf\u0bb0\u0bcd\u0bb5\u0b95\u0bbf",
+    assignLines:
+      "\u0bb5\u0bb0\u0bbf\u0b9a\u0bc8\u0b95\u0bb3\u0bcd \u0b92\u0ba4\u0bc1\u0b95\u0bcd\u0b95\u0bc1",
+    renameLines:
+      "\u0bb5\u0bb0\u0bbf\u0b9a\u0bc8\u0b95\u0bb3\u0bcd \u0bae\u0bb1\u0bc1\u0baa\u0bc6\u0baf\u0bb0\u0bbf\u0b9f\u0bc1",
+    addAgent: "\u0bae\u0bc1\u0b95\u0bb5\u0bb0\u0bcd \u0b9a\u0bc7\u0bb0\u0bcd",
+    addLine: "\u0bb5\u0bb0\u0bbf\u0b9a\u0bc8 \u0b9a\u0bc7\u0bb0\u0bcd",
+    currentPassword:
+      "\u0ba4\u0bb1\u0bcd\u0baa\u0bcb\u0ba4\u0bc8\u0baf \u0b95\u0b9f\u0bb5\u0bc1\u0b9a\u0bcd\u0b9a\u0bca\u0bb2\u0bcd",
+    newPassword:
+      "\u0baa\u0bc1\u0ba4\u0bbf\u0baf \u0b95\u0b9f\u0bb5\u0bc1\u0b9a\u0bcd\u0b9a\u0bca\u0bb2\u0bcd",
+    confirmPassword:
+      "\u0b95\u0b9f\u0bb5\u0bc1\u0b9a\u0bcd\u0b9a\u0bca\u0bb2\u0bcd \u0b89\u0bb1\u0bc1\u0ba4\u0bbf\u0baa\u0bcd\u0baa\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4\u0bc1",
+    loanTypePre: "\u0b83\u0baa\u0bc8\u0ba9\u0bbe\u0ba9\u0bcd\u0bb8\u0bcd",
+    loanTypePost: "\u0ba4\u0ba3\u0bcd\u0b9f\u0bb2\u0bcd",
+    all: "\u0b85\u0ba9\u0bc8\u0ba4\u0bcd\u0ba4\u0bc1\u0bae\u0bcd",
+    active: "\u0b9a\u0bc6\u0baf\u0bb2\u0bbf\u0bb2\u0bcd",
+    completed: "\u0bae\u0bc1\u0b9f\u0bbf\u0ba8\u0bcd\u0ba4\u0ba4\u0bc1",
+    role: "\u0baa\u0b99\u0bcd\u0b95\u0bc1",
+    agent: "\u0bae\u0bc1\u0b95\u0bb5\u0bb0\u0bcd",
+    admin: "\u0ba8\u0bbf\u0bb0\u0bcd\u0bb5\u0bbe\u0b95\u0bbf",
+    lines: "\u0bb5\u0bb0\u0bbf\u0b9a\u0bc8\u0b95\u0bb3\u0bcd",
+    general: "\u0baa\u0bca\u0ba4\u0bc1",
+    agents: "\u0bae\u0bc1\u0b95\u0bb5\u0bb0\u0bcd\u0b95\u0bb3\u0bcd",
+    selectLine:
+      "\u0bb5\u0bb0\u0bbf\u0b9a\u0bc8 \u0ba4\u0bc7\u0bb0\u0bcd\u0bb5\u0bc1",
+    selectDate: "\u0ba4\u0bc7\u0ba4\u0bbf \u0ba4\u0bc7\u0bb0\u0bcd\u0bb5\u0bc1",
+    noCustomers:
+      "\u0bb5\u0bbe\u0b9f\u0bbf\u0b95\u0bcd\u0b95\u0bc8\u0baf\u0bbe\u0bb3\u0bb0\u0bcd\u0b95\u0bb3\u0bcd \u0b87\u0bb2\u0bcd\u0bb2\u0bc8",
+    emiSaved:
+      "EMI \u0bb5\u0bc6\u0bb1\u0bcd\u0bb1\u0bbf\u0b95\u0bb0\u0bae\u0bbe\u0b95 \u0b9a\u0bc7\u0bae\u0bbf\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0ba4\u0bc1",
+    emiUpdated:
+      "EMI \u0bb5\u0bc6\u0bb1\u0bcd\u0bb1\u0bbf\u0b95\u0bb0\u0bae\u0bbe\u0b95 \u0baa\u0bc1\u0ba4\u0bc1\u0baa\u0bcd\u0baa\u0bbf\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0ba4\u0bc1",
+    alreadyPaid:
+      "\u0b87\u0ba9\u0bcd\u0bb1\u0bc1 \u0b87\u0ba8\u0bcd\u0ba4 \u0bb5\u0bbe\u0b9f\u0bbf\u0b95\u0bcd\u0b95\u0bc8\u0baf\u0bbe\u0bb3\u0bb0\u0bc1\u0b95\u0bcd\u0b95\u0bc1 EMI \u0baa\u0ba4\u0bbf\u0bb5\u0bc1 \u0b9a\u0bc6\u0baf\u0bcd\u0baf\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0ba4\u0bc1",
+    invalidDate:
+      "\u0ba4\u0bb1\u0bcd\u0baa\u0bcb\u0ba4\u0bc8\u0baf \u0ba4\u0bc7\u0ba4\u0bbf \u0bae\u0b9f\u0bcd\u0b9f\u0bc1\u0bae\u0bc7 \u0b85\u0ba9\u0bc1\u0bae\u0ba4\u0bbf\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bc1\u0b95\u0bbf\u0bb1\u0ba4\u0bc1",
     emiBlockedByReport:
-      "EMI புதுப்பிக்க முடியாது. {line} இன்று அறிக்கை சமர்ப்பிக்கப்பட்டது.",
-    loanAlreadyClosed: "EMI சேர்க்க முடியாது. இந்த கடன் ஏற்கனவே மூடப்பட்டது.",
-    unlockLine: "திறக்கவும்",
-    lockLine: "பூட்டவும்",
-    submit: "சமர்ப்பி",
-    viewDetails: "விவரங்கள் பார்",
-    close: "மூடு",
-    customerAdded: "வாடிக்கையாளர் வெற்றிகரமாக சேர்க்கப்பட்டது",
-    fillRequired: "அனைத்து கட்டாய புலங்களையும் நிரப்பவும்",
-    enterValidAmount: "சரியான தொகை உள்ளிடவும்",
-    backupRestored: "தரவு வெற்றிகரமாக மீட்டமைக்கப்பட்டது",
-    invalidBackupFile: "தவறான கோப்பு வடிவம்",
-    backupReadError: "கோப்பை படிக்க முடியவில்லை",
-    uploadToCloud: "Cloud-ல் பதிவேற்று",
-    uploadSuccess: "பதிவேற்றம் வெற்றிகரமாக முடிந்தது",
-    uploadFail: "பதிவேற்றம் தோல்வியடைந்தது",
-    uploadSuccessMsg: "அனைத்து தரவும் cloud-ல் வெற்றிகரமாக பதிவேற்றப்பட்டது.",
+      "EMI \u0baa\u0bc1\u0ba4\u0bc1\u0baa\u0bcd\u0baa\u0bbf\u0b95\u0bcd\u0b95 \u0bae\u0bc1\u0b9f\u0bbf\u0baf\u0bbe\u0ba4\u0bc1. {line} \u0b87\u0ba9\u0bcd\u0bb1\u0bc1 \u0b85\u0bb1\u0bbf\u0b95\u0bcd\u0b95\u0bc8 \u0b9a\u0bae\u0bb0\u0bcd\u0baa\u0bcd\u0baa\u0bbf\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0ba4\u0bc1.",
+    loanAlreadyClosed:
+      "EMI \u0b9a\u0bc7\u0bb0\u0bcd\u0b95\u0bcd\u0b95 \u0bae\u0bc1\u0b9f\u0bbf\u0baf\u0bbe\u0ba4\u0bc1. \u0b87\u0ba8\u0bcd\u0ba4 \u0b95\u0b9f\u0ba9\u0bcd \u0b8f\u0bb1\u0bcd\u0b95\u0ba9\u0bb5\u0bc7 \u0bae\u0bc2\u0b9f\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0ba4\u0bc1.",
+    unlockLine: "\u0ba4\u0bbf\u0bb1\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd",
+    lockLine: "\u0baa\u0bc2\u0b9f\u0bcd\u0b9f\u0bb5\u0bc1\u0bae\u0bcd",
+    submit: "\u0b9a\u0bae\u0bb0\u0bcd\u0baa\u0bcd\u0baa\u0bbf",
+    viewDetails:
+      "\u0bb5\u0bbf\u0bb5\u0bb0\u0b99\u0bcd\u0b95\u0bb3\u0bcd \u0baa\u0bbe\u0bb0\u0bcd",
+    close: "\u0bae\u0bc2\u0b9f\u0bc1",
+    customerAdded:
+      "\u0bb5\u0bbe\u0b9f\u0bbf\u0b95\u0bcd\u0b95\u0bc8\u0baf\u0bbe\u0bb3\u0bb0\u0bcd \u0bb5\u0bc6\u0bb1\u0bcd\u0bb1\u0bbf\u0b95\u0bb0\u0bae\u0bbe\u0b95 \u0b9a\u0bc7\u0bb0\u0bcd\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0ba4\u0bc1",
+    fillRequired:
+      "\u0b85\u0ba9\u0bc8\u0ba4\u0bcd\u0ba4\u0bc1 \u0b95\u0b9f\u0bcd\u0b9f\u0bbe\u0baf \u0baa\u0bc1\u0bb2\u0b99\u0bcd\u0b95\u0bb3\u0bc8\u0baf\u0bc1\u0bae\u0bcd \u0ba8\u0bbf\u0bb0\u0bcd\u0baa\u0bcd\u0baa\u0bb5\u0bc1\u0bae\u0bcd",
+    enterValidAmount:
+      "\u0b9a\u0bb0\u0bbf\u0baf\u0bbe\u0ba9 \u0ba4\u0bca\u0b95\u0bc8 \u0b89\u0bb3\u0bcd\u0bb3\u0bbf\u0b9f\u0bb5\u0bc1\u0bae\u0bcd",
+    amountExceedsOutstanding:
+      "\u0ba4\u0bca\u0b95\u0bc8 \u0ba8\u0bbf\u0bb2\u0bc1\u0bb5\u0bc8\u0ba4\u0bcd \u0ba4\u0bca\u0b95\u0bc8\u0baf\u0bc8 \u0bae\u0bc0\u0bb1\u0bc1\u0b95\u0bbf\u0bb1\u0ba4\u0bc1. \u0b85\u0ba4\u0bbf\u0b95\u0baa\u0b9f\u0bcd\u0b9a\u0bae\u0bcd \u0b85\u0ba9\u0bc1\u0bae\u0ba4\u0bbf\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bc1\u0bb5\u0ba4\u0bc1: \u20b9{max}",
+    backupRestored:
+      "\u0ba4\u0bb0\u0bb5\u0bc1 \u0bb5\u0bc6\u0bb1\u0bcd\u0bb1\u0bbf\u0b95\u0bb0\u0bae\u0bbe\u0b95 \u0bae\u0bc0\u0b9f\u0bcd\u0b9f\u0bae\u0bc8\u0b95\u0bcd\u0b95\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0ba4\u0bc1",
+    invalidBackupFile:
+      "\u0ba4\u0bb5\u0bb1\u0bbe\u0ba9 \u0b95\u0bcb\u0baa\u0bcd\u0baa\u0bc1 \u0bb5\u0b9f\u0bbf\u0bb5\u0bae\u0bcd",
+    backupReadError:
+      "\u0b95\u0bcb\u0baa\u0bcd\u0baa\u0bc8 \u0baa\u0b9f\u0bbf\u0b95\u0bcd\u0b95 \u0bae\u0bc1\u0b9f\u0bbf\u0baf\u0bb5\u0bbf\u0bb2\u0bcd\u0bb2\u0bc8",
+    uploadToCloud:
+      "Cloud-\u0bb2\u0bcd \u0baa\u0ba4\u0bbf\u0bb5\u0bc7\u0bb1\u0bcd\u0bb1\u0bc1",
+    uploadSuccess:
+      "\u0baa\u0ba4\u0bbf\u0bb5\u0bc7\u0bb1\u0bcd\u0bb1\u0bae\u0bcd \u0bb5\u0bc6\u0bb1\u0bcd\u0bb1\u0bbf\u0b95\u0bb0\u0bae\u0bbe\u0b95 \u0bae\u0bc1\u0b9f\u0bbf\u0ba8\u0bcd\u0ba4\u0ba4\u0bc1",
+    uploadFail:
+      "\u0baa\u0ba4\u0bbf\u0bb5\u0bc7\u0bb1\u0bcd\u0bb1\u0bae\u0bcd \u0ba4\u0bcb\u0bb2\u0bcd\u0bb5\u0bbf\u0baf\u0b9f\u0bc8\u0ba8\u0bcd\u0ba4\u0ba4\u0bc1",
+    uploadSuccessMsg:
+      "\u0b85\u0ba9\u0bc8\u0ba4\u0bcd\u0ba4\u0bc1 \u0ba4\u0bb0\u0bb5\u0bc1\u0bae\u0bcd cloud-\u0bb2\u0bcd \u0bb5\u0bc6\u0bb1\u0bcd\u0bb1\u0bbf\u0b95\u0bb0\u0bae\u0bbe\u0b95 \u0baa\u0ba4\u0bbf\u0bb5\u0bc7\u0bb1\u0bcd\u0bb1\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0ba4\u0bc1.",
     uploadFailMsg:
-      "Cloud-ல் பதிவேற்ற முடியவில்லை. இணைப்பை சரிபார்த்து மீண்டும் முயற்சிக்கவும்.",
-    enableDashboard: "டாஷ்போர்டு இயக்கு",
-    dashboardAccess: "டாஷ்போர்டு அணுகல்",
-    allLines: "அனைத்து வரிசைகள்",
+      "Cloud-\u0bb2\u0bcd \u0baa\u0ba4\u0bbf\u0bb5\u0bc7\u0bb1\u0bcd\u0bb1 \u0bae\u0bc1\u0b9f\u0bbf\u0baf\u0bb5\u0bbf\u0bb2\u0bcd\u0bb2\u0bc8. \u0b87\u0ba3\u0bc8\u0baa\u0bcd\u0baa\u0bc8 \u0b9a\u0bb0\u0bbf\u0baa\u0bbe\u0bb0\u0bcd\u0ba4\u0bcd\u0ba4\u0bc1 \u0bae\u0bc0\u0ba3\u0bcd\u0b9f\u0bc1\u0bae\u0bcd \u0bae\u0bc1\u0baf\u0bb1\u0bcd\u0b9a\u0bbf\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd.",
+    enableDashboard:
+      "\u0b9f\u0bbe\u0bb7\u0bcd\u0baa\u0bcb\u0bb0\u0bcd\u0b9f\u0bc1 \u0b87\u0baf\u0b95\u0bcd\u0b95\u0bc1",
+    dashboardAccess:
+      "\u0b9f\u0bbe\u0bb7\u0bcd\u0baa\u0bcb\u0bb0\u0bcd\u0b9f\u0bc1 \u0b85\u0ba3\u0bc1\u0b95\u0bb2\u0bcd",
+    allLines:
+      "\u0b85\u0ba9\u0bc8\u0ba4\u0bcd\u0ba4\u0bc1 \u0bb5\u0bb0\u0bbf\u0b9a\u0bc8\u0b95\u0bb3\u0bcd",
   },
 };
 

@@ -106,6 +106,37 @@ export default function AddEntryPage({ onSuccess }: Props) {
     return () => document.removeEventListener("mousedown", handler);
   }, []);
 
+  // Auto-calculate Loan Fee based on Loan Type and Interest
+  useEffect(() => {
+    const amount = Number(form.loanAmount);
+    const interest = Number(form.loanInterest);
+    if (
+      !form.loanAmount ||
+      !form.loanInterest ||
+      Number.isNaN(amount) ||
+      Number.isNaN(interest)
+    )
+      return;
+
+    let calculatedFee: number | null = null;
+
+    if (form.loanType === "Pre") {
+      // Case 1: Pre -> Loan Fee = (Loan Amount * Interest) / 100
+      calculatedFee = (amount * interest) / 100;
+    } else if (form.loanType === "Post" && interest === 20) {
+      // Case 2: Post + Interest 20 -> Loan Fee = 0
+      calculatedFee = 0;
+    } else if (form.loanType === "Post" && interest === 25) {
+      // Case 3: Post + Interest 25 -> Loan Fee = (Loan Amount * 5) / 100
+      calculatedFee = (amount * 5) / 100;
+    }
+
+    if (calculatedFee !== null) {
+      setForm((prev) => ({ ...prev, loanFee: String(calculatedFee) }));
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.loanAmount, form.loanInterest, form.loanType]);
+
   // Filter customers by selected line + search query
   const matchingCustomers =
     form.lineCategoryId && searchQuery.trim().length > 0

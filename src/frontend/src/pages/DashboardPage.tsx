@@ -6,7 +6,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CreditCard, IndianRupee, TrendingUp, Users } from "lucide-react";
+import {
+  CreditCard,
+  IndianRupee,
+  TrendingUp,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { useState } from "react";
 import { useAppStore } from "../store/appStore";
 import { outstandingAmount } from "../store/calculations";
@@ -21,7 +27,6 @@ export default function DashboardPage() {
 
   const isAgent = currentUser?.role === "agent";
 
-  // For agents, restrict selectable lines to their assigned lines
   const availableLines = isAgent
     ? lineCategories.filter((l) => currentUser?.assignedLines.includes(l.id))
     : lineCategories;
@@ -33,7 +38,6 @@ export default function DashboardPage() {
   const today = new Date().toISOString().split("T")[0];
   const todayMs = new Date(today).getTime();
 
-  // Filter customers by selected line
   const filteredCustomers =
     selectedLineId === "__all__"
       ? customers
@@ -47,21 +51,35 @@ export default function DashboardPage() {
   ).length;
 
   // Active Customers = customers where (current date - loan date) <= 120 days
-  const activeLoans = filteredCustomers.filter((c) => {
+  const activeCustomers = filteredCustomers.filter((c) => {
     const loanDateMs = new Date(c.createdAt).getTime();
     const diffDays = (todayMs - loanDateMs) / (1000 * 60 * 60 * 24);
     return diffDays <= 120;
-  }).length;
+  });
+  const activeLoansCount = activeCustomers.length;
 
   const totalLoanAmount = filteredCustomers.reduce(
     (s, c) => s + c.loanAmount,
     0,
   );
+
   const todayCollection = emiPayments
     .filter(
       (e) => e.paymentDate === today && filteredCustomerIds.has(e.customerId),
     )
     .reduce((s, e) => s + e.amount, 0);
+
+  // Outstanding Loan = sum of outstanding amounts of ALL customers in selected line
+  const outstandingLoan = filteredCustomers.reduce(
+    (s, c) => s + outstandingAmount(c, emiPayments),
+    0,
+  );
+
+  // Active Loans = sum of outstanding amounts of Active Customers (loan date <= 120 days)
+  const activeLoansAmount = activeCustomers.reduce(
+    (s, c) => s + outstandingAmount(c, emiPayments),
+    0,
+  );
 
   const recentActivity = [...emiPayments]
     .filter((e) => filteredCustomerIds.has(e.customerId))
@@ -88,7 +106,7 @@ export default function DashboardPage() {
     },
     {
       label: t.activeLoans,
-      value: activeLoans,
+      value: activeLoansCount,
       icon: TrendingUp,
       color: "text-emerald-500",
     },
@@ -103,6 +121,18 @@ export default function DashboardPage() {
       value: formatINR(todayCollection),
       icon: CreditCard,
       color: "text-violet-500",
+    },
+    {
+      label: t.outstandingLoan,
+      value: formatINR(outstandingLoan),
+      icon: Wallet,
+      color: "text-rose-500",
+    },
+    {
+      label: t.activeLoansAmount,
+      value: formatINR(activeLoansAmount),
+      icon: TrendingUp,
+      color: "text-teal-500",
     },
   ];
 

@@ -72,6 +72,15 @@ export default function UpdateEmiPage() {
       showAlert(t.enterValidAmount, "error");
       return;
     }
+    const outstanding = outstandingAmount(selected, emiPayments);
+    if (Number(amount) > outstanding) {
+      const msg = t.amountExceedsOutstanding.replace(
+        "{max}",
+        formatINR(outstanding).replace("₹", ""),
+      );
+      showAlert(msg, "error");
+      return;
+    }
     if (date !== today) {
       showAlert(t.invalidDate, "error");
       return;
