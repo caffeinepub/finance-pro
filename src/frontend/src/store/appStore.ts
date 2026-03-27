@@ -209,6 +209,7 @@ export const useAppStore = create<AppStore>()(
           ...fields,
           id: crypto.randomUUID(),
           createdAt: loanDate ?? new Date().toISOString().split("T")[0],
+          addedAt: new Date().toISOString(),
           createdBy: get().currentUser?.id ?? "u1",
         };
         set((s) => ({ customers: [...s.customers, newCustomer] }));

@@ -1,4 +1,4 @@
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import {
   Select,
   SelectContent,
@@ -7,6 +7,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  ArrowDownRight,
+  ArrowUpRight,
   CreditCard,
   IndianRupee,
   TrendingUp,
@@ -17,8 +19,25 @@ import { useState } from "react";
 import { useAppStore } from "../store/appStore";
 import { outstandingAmount } from "../store/calculations";
 import { labels } from "../store/labels";
-import { formatDate } from "../utils/dateFormat";
 import { formatINR } from "../utils/formatINR";
+
+function toISTTime(isoString: string): string {
+  const date = new Date(isoString);
+  const ist = new Date(date.getTime() + 5.5 * 60 * 60 * 1000);
+  const h = ist.getUTCHours();
+  const m = ist.getUTCMinutes().toString().padStart(2, "0");
+  const ampm = h >= 12 ? "pm" : "am";
+  const h12 = (h % 12 || 12).toString().padStart(2, "0");
+  return `${h12}:${m} ${ampm}`;
+}
+
+type Activity = {
+  id: string;
+  type: "new_loan" | "emi";
+  customerName: string;
+  amount: number;
+  timestamp: string;
+};
 
 export default function DashboardPage() {
   const { customers, emiPayments, lineCategories, language, currentUser } =
@@ -81,21 +100,29 @@ export default function DashboardPage() {
     0,
   );
 
-  const recentActivity = [...emiPayments]
+  // --- Recent Activity (last 20, combined loans + EMIs) ---
+  const loanActivities: Activity[] = filteredCustomers.map((c) => ({
+    id: `loan_${c.id}`,
+    type: "new_loan",
+    customerName: c.name,
+    amount: c.loanAmount,
+    timestamp: c.addedAt ?? `${c.createdAt}T00:00:00.000Z`,
+  }));
+
+  const emiActivities: Activity[] = emiPayments
     .filter((e) => filteredCustomerIds.has(e.customerId))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-    .slice(0, 10)
     .map((e) => ({
-      ...e,
+      id: `emi_${e.id}`,
+      type: "emi",
       customerName:
         customers.find((c) => c.id === e.customerId)?.name ?? "Unknown",
-      lineName:
-        lineCategories.find(
-          (l) =>
-            l.id ===
-            customers.find((c) => c.id === e.customerId)?.lineCategoryId,
-        )?.name ?? "",
+      amount: e.amount,
+      timestamp: e.createdAt,
     }));
+
+  const recentActivity = [...loanActivities, ...emiActivities]
+    .sort((a, b) => b.timestamp.localeCompare(a.timestamp))
+    .slice(0, 20);
 
   const cards = [
     {
@@ -178,13 +205,19 @@ export default function DashboardPage() {
         ))}
       </div>
 
+      {/* Recent Activity */}
       <Card data-ocid="dashboard.list">
-        <CardHeader className="pb-2">
-          <CardTitle className="text-sm">{t.recentActivity}</CardTitle>
-        </CardHeader>
         <CardContent className="p-0">
+          <div className="px-4 pt-4 pb-2">
+            <p className="text-base font-bold text-foreground">
+              {t.recentActivity}
+            </p>
+          </div>
           {recentActivity.length === 0 ? (
-            <p className="text-center text-muted-foreground text-sm py-4">
+            <p
+              className="text-center text-muted-foreground text-sm py-6"
+              data-ocid="dashboard.empty_state"
+            >
               {t.noCustomers}
             </p>
           ) : (
@@ -192,18 +225,30 @@ export default function DashboardPage() {
               {recentActivity.map((a, i) => (
                 <div
                   key={a.id}
-                  className="flex items-center justify-between px-4 py-2.5"
+                  className="flex items-center gap-3 px-4 py-3"
                   data-ocid={`dashboard.activity.item.${i + 1}`}
                 >
-                  <div>
-                    <p className="text-sm font-medium">{a.customerName}</p>
+                  <div
+                    className={`flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center ${
+                      a.type === "new_loan" ? "bg-indigo-100" : "bg-emerald-100"
+                    }`}
+                  >
+                    {a.type === "new_loan" ? (
+                      <ArrowUpRight className="h-5 w-5 text-indigo-600" />
+                    ) : (
+                      <ArrowDownRight className="h-5 w-5 text-emerald-600" />
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold text-foreground truncate">
+                      {a.type === "new_loan"
+                        ? `New loan: ${a.customerName}`
+                        : `EMI from ${a.customerName}`}
+                    </p>
                     <p className="text-xs text-muted-foreground">
-                      {a.lineName} &bull; {formatDate(a.paymentDate)}
+                      {toISTTime(a.timestamp)} &middot; {formatINR(a.amount)}
                     </p>
                   </div>
-                  <span className="text-sm font-semibold text-emerald-600">
-                    {formatINR(a.amount)}
-                  </span>
                 </div>
               ))}
             </div>

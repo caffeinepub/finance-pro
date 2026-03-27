@@ -26,7 +26,8 @@ export interface Customer {
   loanType: LoanType;
   loanFee: number;
   lineCategoryId: string;
-  createdAt: string;
+  createdAt: string; // loan date (YYYY-MM-DD)
+  addedAt?: string; // full ISO timestamp when customer was added to system
   createdBy: string;
   isActive: boolean;
 }
