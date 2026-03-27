@@ -417,7 +417,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
               </div>
             )}
 
-            {/* 2. Loan Date (moved to 2nd position) */}
+            {/* 2. Loan Date */}
             <div className="space-y-1">
               <Label className="text-xs">Loan Date *</Label>
               <Input
@@ -484,50 +484,20 @@ export default function AddEntryPage({ onSuccess }: Props) {
               <ErrorMsg fieldKey="address" />
             </div>
 
-            {/* 6. Loan Amount & Interest */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <Label className="text-xs">{t.loanAmount} *</Label>
-                <Input
-                  placeholder=""
-                  type="number"
-                  {...field("loanAmount")}
-                  className={errors.loanAmount ? "border-red-500" : ""}
-                  data-ocid="add_entry.loan_amount_input"
-                />
-                <ErrorMsg fieldKey="loanAmount" />
-              </div>
-              <div className="space-y-1">
-                <Label className="text-xs">{t.loanInterest} *</Label>
-                <Input
-                  placeholder=""
-                  type="number"
-                  {...field("loanInterest")}
-                  className={errors.loanInterest ? "border-red-500" : ""}
-                  data-ocid="add_entry.loan_interest_input"
-                />
-                <ErrorMsg fieldKey="loanInterest" />
-              </div>
-            </div>
-
-            {/* 7. Loan Fee */}
+            {/* 6. Loan Amount */}
             <div className="space-y-1">
-              <Label className="text-xs">
-                {t.loanFee}{" "}
-                <span className="text-muted-foreground">(மகிமை)</span>
-                {" *"}
-              </Label>
+              <Label className="text-xs">{t.loanAmount} *</Label>
               <Input
                 placeholder=""
                 type="number"
-                {...field("loanFee")}
-                className={errors.loanFee ? "border-red-500" : ""}
-                data-ocid="add_entry.loan_fee_input"
+                {...field("loanAmount")}
+                className={errors.loanAmount ? "border-red-500" : ""}
+                data-ocid="add_entry.loan_amount_input"
               />
-              <ErrorMsg fieldKey="loanFee" />
+              <ErrorMsg fieldKey="loanAmount" />
             </div>
 
-            {/* 8. Loan Type */}
+            {/* 7. Loan Type */}
             <div className="space-y-1">
               <Label className="text-xs">{t.loanType} *</Label>
               <Select
@@ -544,6 +514,36 @@ export default function AddEntryPage({ onSuccess }: Props) {
                   <SelectItem value="Post">{t.loanTypePost}</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            {/* 8. Interest */}
+            <div className="space-y-1">
+              <Label className="text-xs">{t.loanInterest} *</Label>
+              <Input
+                placeholder=""
+                type="number"
+                {...field("loanInterest")}
+                className={errors.loanInterest ? "border-red-500" : ""}
+                data-ocid="add_entry.loan_interest_input"
+              />
+              <ErrorMsg fieldKey="loanInterest" />
+            </div>
+
+            {/* 9. Loan Fee */}
+            <div className="space-y-1">
+              <Label className="text-xs">
+                {t.loanFee}{" "}
+                <span className="text-muted-foreground">(மகிமை)</span>
+                {" *"}
+              </Label>
+              <Input
+                placeholder=""
+                type="number"
+                {...field("loanFee")}
+                className={errors.loanFee ? "border-red-500" : ""}
+                data-ocid="add_entry.loan_fee_input"
+              />
+              <ErrorMsg fieldKey="loanFee" />
             </div>
 
             {/* Repay Preview */}
