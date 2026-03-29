@@ -1,4 +1,4 @@
-const CACHE_NAME = 'finance-pro-v4';
+const CACHE_NAME = 'finance-pro-v5';
 const SHELL_ASSETS = [
   '/manifest.json',
   '/assets/generated/pwa-icon-192.dim_192x192.png',
@@ -9,7 +9,7 @@ self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
       return cache.addAll(SHELL_ASSETS).catch(() => {
-        // Non-fatal: some assets may not exist yet
+        // Non-fatal: assets may not exist on first install
       });
     })
   );
@@ -24,9 +24,8 @@ self.addEventListener('activate', (event) => {
           .filter((key) => key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       );
-    })
+    }).then(() => self.clients.claim())
   );
-  self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
@@ -38,8 +37,7 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For navigation requests: network first, fall back to cache
-  // This ensures the latest HTML is always loaded after a new deployment
+  // Navigation requests: network first, fall back to cached index.html
   if (request.mode === 'navigate') {
     event.respondWith(
       fetch(request)
@@ -50,12 +48,12 @@ self.addEventListener('fetch', (event) => {
           }
           return response;
         })
-        .catch(() => caches.match(request))
+        .catch(() => caches.match('/') || caches.match(request))
     );
     return;
   }
 
-  // For static assets: network first, fall back to cache
+  // Static assets: network first, fall back to cache
   event.respondWith(
     fetch(request)
       .then((response) => {
