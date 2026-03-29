@@ -8,6 +8,7 @@ import type {
 } from "../backend";
 import { createActorWithConfig } from "../config";
 import type { SavedReport, SavedReportField } from "../store/types";
+import type { Customer as StoreCustomer } from "../store/types";
 
 let actorCache: backendInterface | null = null;
 
@@ -18,10 +19,23 @@ async function getActor(): Promise<backendInterface> {
   return actorCache;
 }
 
-export async function syncCustomerToCloud(customer: Customer): Promise<void> {
+export async function syncCustomerToCloud(
+  customer: StoreCustomer,
+): Promise<void> {
   try {
     const actor = await getActor();
-    await actor.addOrUpdateCustomer(customer);
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    const { addedAt, ...cloudCustomer } = customer;
+    await actor.addOrUpdateCustomer(cloudCustomer as Customer);
+    // Persist addedAt timestamp separately
+    if (addedAt) {
+      const existing = await actor.getCustomerTimestamps();
+      const updated: Array<[string, string]> = [
+        ...existing.filter(([id]) => id !== customer.id),
+        [customer.id, addedAt],
+      ];
+      await actor.setCustomerTimestamps(updated);
+    }
   } catch {
     // best-effort; silently swallow
   }
@@ -96,15 +110,23 @@ export async function loadAgentAccounts(): Promise<AgentAccount[]> {
 }
 
 export async function loadFromCloud(): Promise<{
-  customers: Customer[];
+  customers: StoreCustomer[];
   emiPayments: EMIPayment[];
 }> {
   try {
     const actor = await getActor();
-    const [customers, emiPayments] = await Promise.all([
+    const [cloudCustomers, emiPayments, timestampEntries] = await Promise.all([
       actor.getCustomers(),
       actor.getEMIPayments(),
+      actor.getCustomerTimestamps(),
     ]);
+    // Build a lookup map: customerId -> addedAt ISO string
+    const tsMap = new Map<string, string>(timestampEntries);
+    const customers: StoreCustomer[] = cloudCustomers.map((c) => ({
+      ...c,
+      loanType: c.loanType as StoreCustomer["loanType"],
+      addedAt: tsMap.get(c.id),
+    }));
     return { customers, emiPayments };
   } catch {
     return { customers: [], emiPayments: [] };
@@ -206,7 +228,7 @@ export async function loadSavedReports(): Promise<SavedReport[]> {
  * Retries up to 3 times with a 2-second delay between attempts.
  */
 export async function uploadAllLocalDataToCloud(params: {
-  customers: Customer[];
+  customers: StoreCustomer[];
   emiPayments: EMIPayment[];
   lineCategories: LineCategory[];
   agents: AgentAccount[];
@@ -218,12 +240,23 @@ export async function uploadAllLocalDataToCloud(params: {
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
       const actor = await getActor();
-      // Use bulk-replace calls — 5 total calls regardless of data size
-      await actor.setCustomers(params.customers);
+      // Strip addedAt from customer objects before sending to cloud
+      const cloudCustomers: Customer[] = params.customers.map((c) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { addedAt, ...rest } = c;
+        return rest as Customer;
+      });
+      // Build timestamp entries from customers that have addedAt
+      const timestampEntries: Array<[string, string]> = params.customers
+        .filter((c) => c.addedAt)
+        .map((c) => [c.id, c.addedAt!]);
+
+      await actor.setCustomers(cloudCustomers);
       await actor.setEMIPayments(params.emiPayments);
       await actor.setLineCategories(params.lineCategories);
       await actor.setAgentAccounts(params.agents);
       await actor.setSavedReports(params.savedReports.map(savedReportToCloud));
+      await actor.setCustomerTimestamps(timestampEntries);
       return true;
     } catch {
       actorCache = null; // reset on failure so next attempt gets fresh actor

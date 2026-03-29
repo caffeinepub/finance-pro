@@ -115,6 +115,7 @@ export interface Customer {
     address: string;
     phone: string;
     lineCategoryId: string;
+    addedAt: [] | [string];
 }
 export interface AgentAccount {
     id: string;
@@ -165,6 +166,8 @@ export interface backendInterface {
     setLineCategories(categories: Array<LineCategory>): Promise<void>;
     setAgentAccounts(agents: Array<AgentAccount>): Promise<void>;
     setSavedReports(reports: Array<CloudSavedReport>): Promise<void>;
+    getCustomerTimestamps(): Promise<Array<[string, string]>>;
+    setCustomerTimestamps(entries: Array<[string, string]>): Promise<void>;
 }
 import type { UserRole as _UserRole, AgentAccount as _AgentAccount } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -446,6 +449,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.setSavedReports(arg0);
+            return result;
+        }
+    }
+    async getCustomerTimestamps(): Promise<Array<[string, string]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getCustomerTimestamps();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getCustomerTimestamps();
+            return result;
+        }
+    }
+    async setCustomerTimestamps(arg0: Array<[string, string]>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setCustomerTimestamps(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setCustomerTimestamps(arg0);
             return result;
         }
     }

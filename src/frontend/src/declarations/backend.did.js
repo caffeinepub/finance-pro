@@ -60,6 +60,7 @@ export const SavedReport = IDL.Record({
   'savedAt' : IDL.Text,
   'savedBy' : IDL.Text,
 });
+const CustomerTimestampEntry = IDL.Tuple(IDL.Text, IDL.Text);
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -76,12 +77,14 @@ export const idlService = IDL.Service({
   'getAgentAccounts' : IDL.Func([], [IDL.Vec(AgentAccount)], ['query']),
   'getLineCategories' : IDL.Func([], [IDL.Vec(LineCategory)], ['query']),
   'getSavedReports' : IDL.Func([], [IDL.Vec(SavedReport)], ['query']),
+  'getCustomerTimestamps' : IDL.Func([], [IDL.Vec(CustomerTimestampEntry)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'setCustomers' : IDL.Func([IDL.Vec(Customer)], [], []),
   'setEMIPayments' : IDL.Func([IDL.Vec(EMIPayment)], [], []),
   'setLineCategories' : IDL.Func([IDL.Vec(LineCategory)], [], []),
   'setAgentAccounts' : IDL.Func([IDL.Vec(AgentAccount)], [], []),
   'setSavedReports' : IDL.Func([IDL.Vec(SavedReport)], [], []),
+  'setCustomerTimestamps' : IDL.Func([IDL.Vec(CustomerTimestampEntry)], [], []),
 });
 
 export const idlInitArgs = [];
@@ -139,6 +142,7 @@ export const idlFactory = ({ IDL }) => {
     'savedAt' : IDL.Text,
     'savedBy' : IDL.Text,
   });
+  const CustomerTimestampEntry = IDL.Tuple(IDL.Text, IDL.Text);
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -155,12 +159,14 @@ export const idlFactory = ({ IDL }) => {
     'getAgentAccounts' : IDL.Func([], [IDL.Vec(AgentAccount)], ['query']),
     'getLineCategories' : IDL.Func([], [IDL.Vec(LineCategory)], ['query']),
     'getSavedReports' : IDL.Func([], [IDL.Vec(SavedReport)], ['query']),
+    'getCustomerTimestamps' : IDL.Func([], [IDL.Vec(CustomerTimestampEntry)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'setCustomers' : IDL.Func([IDL.Vec(Customer)], [], []),
     'setEMIPayments' : IDL.Func([IDL.Vec(EMIPayment)], [], []),
     'setLineCategories' : IDL.Func([IDL.Vec(LineCategory)], [], []),
     'setAgentAccounts' : IDL.Func([IDL.Vec(AgentAccount)], [], []),
     'setSavedReports' : IDL.Func([IDL.Vec(SavedReport)], [], []),
+    'setCustomerTimestamps' : IDL.Func([IDL.Vec(CustomerTimestampEntry)], [], []),
   });
 };
 

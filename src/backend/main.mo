@@ -18,6 +18,9 @@ actor {
     createdAt : Text;
     createdBy : Text;
     isActive : Bool;
+    // NOTE: Do NOT add fields here — changing this type breaks stable variable
+    // deserialization on upgrade and wipes all customer data.
+    // Store extra per-customer metadata in separate stable maps instead.
   };
 
   type EMIPayment = {
@@ -72,6 +75,10 @@ actor {
   stable var stableLineCategories : [(Text, LineCategory)] = [];
   stable var stableAgentAccounts : [(Text, AgentAccount)] = [];
   stable var stableSavedReports : [(Text, SavedReport)] = [];
+  // Separate map for customer addedAt timestamps (customerId -> ISO string).
+  // Stored separately to avoid changing the Customer type (which would break
+  // stable variable compatibility and wipe all data on upgrade).
+  stable var stableCustomerTimestamps : [(Text, Text)] = [];
 
   // In-memory working maps
   var customersMap : Map.Map<Text, Customer> = Map.empty();
@@ -79,6 +86,7 @@ actor {
   var lineCategoriesMap : Map.Map<Text, LineCategory> = Map.empty();
   var agentAccountsMap : Map.Map<Text, AgentAccount> = Map.empty();
   var savedReportsMap : Map.Map<Text, SavedReport> = Map.empty();
+  var customerTimestampsMap : Map.Map<Text, Text> = Map.empty();
 
   // Reconstruct maps from stable arrays on first init
   do {
@@ -87,6 +95,7 @@ actor {
     for ((k, v) in stableLineCategories.vals()) { lineCategoriesMap.add(k, v) };
     for ((k, v) in stableAgentAccounts.vals()) { agentAccountsMap.add(k, v) };
     for ((k, v) in stableSavedReports.vals()) { savedReportsMap.add(k, v) };
+    for ((k, v) in stableCustomerTimestamps.vals()) { customerTimestampsMap.add(k, v) };
   };
 
   system func preupgrade() {
@@ -95,6 +104,7 @@ actor {
     stableLineCategories := lineCategoriesMap.entries().toArray();
     stableAgentAccounts := agentAccountsMap.entries().toArray();
     stableSavedReports := savedReportsMap.entries().toArray();
+    stableCustomerTimestamps := customerTimestampsMap.entries().toArray();
   };
 
   system func postupgrade() {
@@ -103,11 +113,13 @@ actor {
     lineCategoriesMap := Map.empty();
     agentAccountsMap := Map.empty();
     savedReportsMap := Map.empty();
+    customerTimestampsMap := Map.empty();
     for ((k, v) in stableCustomers.vals()) { customersMap.add(k, v) };
     for ((k, v) in stableEMIPayments.vals()) { emiPaymentsMap.add(k, v) };
     for ((k, v) in stableLineCategories.vals()) { lineCategoriesMap.add(k, v) };
     for ((k, v) in stableAgentAccounts.vals()) { agentAccountsMap.add(k, v) };
     for ((k, v) in stableSavedReports.vals()) { savedReportsMap.add(k, v) };
+    for ((k, v) in stableCustomerTimestamps.vals()) { customerTimestampsMap.add(k, v) };
     // NOTE: stable arrays are intentionally NOT cleared here.
     // Keeping them ensures data can be recovered on future upgrades
     // even if the in-memory restore partially fails.
@@ -132,6 +144,7 @@ actor {
 
   public shared func deleteCustomer(id : Text) : async () {
     customersMap.remove(id);
+    customerTimestampsMap.remove(id);
     let toRemove = Map.empty<Text, Bool>();
     for ((pid, p) in emiPaymentsMap.entries()) {
       if (Text.equal(p.customerId, id)) {
@@ -141,6 +154,18 @@ actor {
     for (pid in toRemove.keys()) {
       emiPaymentsMap.remove(pid);
     };
+  };
+
+  // Customer Timestamps — separate map for addedAt ISO strings
+  public shared func setCustomerTimestamps(entries : [(Text, Text)]) : async () {
+    customerTimestampsMap := Map.empty();
+    for ((k, v) in entries.vals()) {
+      customerTimestampsMap.add(k, v);
+    };
+  };
+
+  public query func getCustomerTimestamps() : async [(Text, Text)] {
+    customerTimestampsMap.entries().toArray();
   };
 
   // EMI Payments Management — individual add/update

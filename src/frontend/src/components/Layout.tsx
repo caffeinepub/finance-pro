@@ -43,7 +43,7 @@ export default function Layout({ settingsOpen, setSettingsOpen }: Props) {
       case "dashboard":
         return <DashboardPage />;
       case "add-entry":
-        return <AddEntryPage onSuccess={() => setPage("records")} />;
+        return <AddEntryPage />;
       case "update-emi":
         return <UpdateEmiPage />;
       case "records":

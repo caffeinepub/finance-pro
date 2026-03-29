@@ -70,9 +70,9 @@ interface AppStore extends AppState {
   deleteReportCustomField: (id: string) => void;
   saveReport: (r: Omit<SavedReport, "id" | "savedAt">) => void;
   deleteSavedReport: (id: string) => void;
-  unlockedReportLines: string[];
-  unlockReportLine: (key: string) => void;
-  lockReportLine: (key: string) => void;
+  lockedLines: string[];
+  lockLine: (lineName: string) => void;
+  unlockLine: (lineName: string) => void;
   restoreFromBackup: (data: {
     customers?: Customer[];
     emiPayments?: EMIPayment[];
@@ -140,8 +140,8 @@ export const useAppStore = create<AppStore>()(
       customers: [] as Customer[],
       emiPayments: [] as EMIPayment[],
       savedReports: [] as SavedReport[],
-      unlockedReportLines: JSON.parse(
-        localStorage.getItem("financeProUnlockedLines") || "[]",
+      lockedLines: JSON.parse(
+        localStorage.getItem("financeProLockedLines") || "[]",
       ) as string[],
 
       // Local-only preferences — persisted to localStorage
@@ -313,6 +313,7 @@ export const useAppStore = create<AppStore>()(
             ),
           ],
         }));
+        get().lockLine(r.lineName);
         fireAndForget(
           () => syncSavedReportToCloud(newReport),
           get().setSyncStatus,
@@ -333,18 +334,15 @@ export const useAppStore = create<AppStore>()(
         }
       },
 
-      unlockReportLine: (key) => {
-        const next = [
-          ...get().unlockedReportLines.filter((k) => k !== key),
-          key,
-        ];
-        localStorage.setItem("financeProUnlockedLines", JSON.stringify(next));
-        set({ unlockedReportLines: next });
+      lockLine: (lineName) => {
+        const next = [...new Set([...get().lockedLines, lineName])];
+        localStorage.setItem("financeProLockedLines", JSON.stringify(next));
+        set({ lockedLines: next });
       },
-      lockReportLine: (key) => {
-        const next = get().unlockedReportLines.filter((k) => k !== key);
-        localStorage.setItem("financeProUnlockedLines", JSON.stringify(next));
-        set({ unlockedReportLines: next });
+      unlockLine: (lineName) => {
+        const next = get().lockedLines.filter((n) => n !== lineName);
+        localStorage.setItem("financeProLockedLines", JSON.stringify(next));
+        set({ lockedLines: next });
       },
 
       restoreFromBackup: async (data): Promise<boolean> => {

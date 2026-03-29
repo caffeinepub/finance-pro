@@ -2,9 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, TrendingUp } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, TrendingUp } from "lucide-react";
 import { useState } from "react";
-import { toast } from "sonner";
 import { useAppStore } from "../store/appStore";
 import { labels } from "../store/labels";
 
@@ -12,15 +11,25 @@ export default function LoginPage() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [errorMsg, setErrorMsg] = useState("");
   const login = useAppStore((s) => s.login);
   const language = useAppStore((s) => s.language);
   const setLanguage = useAppStore((s) => s.setLanguage);
   const t = labels[language];
 
+  const invalidCredentialsMsg =
+    language === "ta"
+      ? "தவறான பயனர்பெயர் அல்லது கடவுச்சொல்"
+      : "Invalid username or password";
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     const ok = login(username, password);
-    if (!ok) toast.error("Invalid username or password");
+    if (!ok) setErrorMsg(invalidCredentialsMsg);
+  };
+
+  const clearError = () => {
+    if (errorMsg) setErrorMsg("");
   };
 
   return (
@@ -45,7 +54,10 @@ export default function LoginPage() {
               <Input
                 id="username"
                 value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                onChange={(e) => {
+                  setUsername(e.target.value);
+                  clearError();
+                }}
                 placeholder={t.username}
                 autoComplete="username"
                 data-ocid="login.input"
@@ -58,7 +70,10 @@ export default function LoginPage() {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    clearError();
+                  }}
                   placeholder={t.password}
                   autoComplete="current-password"
                   className="pr-10"
@@ -79,6 +94,17 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {errorMsg && (
+              <div
+                className="flex items-center gap-2 bg-red-500 text-white text-sm font-medium px-4 py-3 rounded-lg"
+                data-ocid="login.error_state"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>{errorMsg}</span>
+              </div>
+            )}
+
             <Button
               type="submit"
               className="w-full"

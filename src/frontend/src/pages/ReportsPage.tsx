@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Lock, Plus, Save, Trash2, Unlock } from "lucide-react";
+import { Download, Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAlert } from "../components/AlertPopup";
 import { useAppStore } from "../store/appStore";
@@ -36,15 +36,11 @@ export default function ReportsPage() {
     savedReports,
     saveReport,
     deleteSavedReport,
-    unlockReportLine,
-    lockReportLine,
-    unlockedReportLines,
   } = useAppStore();
   const t = labels[language];
   const today = new Date().toISOString().split("T")[0];
   const { showAlert, AlertComponent } = useAlert(language);
 
-  const isAdmin = currentUser?.role === "admin";
   const isAgent = currentUser?.role === "agent";
   const assignedLines = currentUser?.assignedLines ?? [];
 
@@ -473,34 +469,6 @@ export default function ReportsPage() {
                       </CardTitle>
                     </button>
                     <div className="flex items-center gap-1">
-                      {isAdmin &&
-                        r.reportDate === today &&
-                        (() => {
-                          const lockKey = `${r.lineName}|${r.reportDate}`;
-                          const isUnlocked =
-                            unlockedReportLines.includes(lockKey);
-                          return (
-                            <button
-                              type="button"
-                              className="text-xs flex items-center gap-1 px-2 py-1 rounded border border-border text-muted-foreground hover:text-foreground"
-                              data-ocid={`reports.saved_reports.toggle.lock.${idx + 1}`}
-                              onClick={() =>
-                                isUnlocked
-                                  ? lockReportLine(lockKey)
-                                  : unlockReportLine(lockKey)
-                              }
-                            >
-                              {isUnlocked ? (
-                                <Unlock className="h-3 w-3" />
-                              ) : (
-                                <Lock className="h-3 w-3" />
-                              )}
-                              <span>
-                                {isUnlocked ? t.lockLine : t.unlockLine}
-                              </span>
-                            </button>
-                          );
-                        })()}
                       {!isAgent && (
                         <button
                           type="button"

@@ -18,10 +18,6 @@ import { labels } from "../store/labels";
 import type { LoanType } from "../store/types";
 import { formatINR } from "../utils/formatINR";
 
-interface Props {
-  onSuccess?: () => void;
-}
-
 const ERR_REQUIRED = { en: "Required", ta: "தேவை" };
 const ERR_PHONE = {
   en: "Must be exactly 10 digits",
@@ -58,9 +54,15 @@ type FormFields = {
 
 type FieldErrors = Partial<Record<keyof FormFields, string>>;
 
-export default function AddEntryPage({ onSuccess }: Props) {
-  const { lineCategories, addCustomer, language, currentUser, customers } =
-    useAppStore();
+export default function AddEntryPage() {
+  const {
+    lineCategories,
+    addCustomer,
+    language,
+    currentUser,
+    customers,
+    lockedLines,
+  } = useAppStore();
   const t = labels[language];
   const { showAlert, AlertComponent } = useAlert(language);
 
@@ -121,13 +123,10 @@ export default function AddEntryPage({ onSuccess }: Props) {
     let calculatedFee: number | null = null;
 
     if (form.loanType === "Pre") {
-      // Case 1: Pre -> Loan Fee = (Loan Amount * Interest) / 100
       calculatedFee = (amount * interest) / 100;
     } else if (form.loanType === "Post" && interest === 20) {
-      // Case 2: Post + Interest 20 -> Loan Fee = 0
       calculatedFee = 0;
     } else if (form.loanType === "Post" && interest === 25) {
-      // Case 3: Post + Interest 25 -> Loan Fee = (Loan Amount * 5) / 100
       calculatedFee = (amount * 5) / 100;
     }
 
@@ -152,7 +151,6 @@ export default function AddEntryPage({ onSuccess }: Props) {
   const handleAutofill = (customerId: string) => {
     const c = customers.find((x) => x.id === customerId);
     if (!c) return;
-    // Only autofill name, phone, address — serial number must be entered manually
     const updated = {
       ...form,
       name: c.name,
@@ -219,7 +217,6 @@ export default function AddEntryPage({ onSuccess }: Props) {
       const newErrors = validate(updated);
       setErrors(newErrors);
     }
-    // Clear autofill badge if user manually edits autofilled fields
     if (["name", "phone", "address"].includes(key)) {
       setAutofilled(false);
     }
@@ -231,6 +228,15 @@ export default function AddEntryPage({ onSuccess }: Props) {
     const errs = validate(form);
     setErrors(errs);
     if (Object.keys(errs).length > 0) return;
+
+    if (isAgent) {
+      const lineName =
+        lineCategories.find((l) => l.id === form.lineCategoryId)?.name ?? "";
+      if (lockedLines.includes(lineName)) {
+        showAlert(t.lineLockedByAdmin, "error");
+        return;
+      }
+    }
 
     addCustomer({
       serialNumber: form.serialNumber,
@@ -262,7 +268,6 @@ export default function AddEntryPage({ onSuccess }: Props) {
     setSubmitted(false);
     setAutofilled(false);
     setSearchQuery("");
-    onSuccess?.();
   };
 
   const field = (
@@ -317,7 +322,7 @@ export default function AddEntryPage({ onSuccess }: Props) {
               <ErrorMsg fieldKey="lineCategoryId" />
             </div>
 
-            {/* 1b. Customer Search / Autofill (shown after line category selected) */}
+            {/* 1b. Customer Search / Autofill */}
             {form.lineCategoryId && (
               <div className="space-y-1" ref={searchRef}>
                 <Label className="text-xs flex items-center gap-1.5 text-muted-foreground">
@@ -378,7 +383,6 @@ export default function AddEntryPage({ onSuccess }: Props) {
                       </button>
                     )}
 
-                    {/* Dropdown */}
                     {showDropdown && searchQuery.trim().length > 0 && (
                       <div
                         data-ocid="add_entry.dropdown_menu"

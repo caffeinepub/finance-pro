@@ -24,8 +24,7 @@ export default function UpdateEmiPage() {
     lineCategories,
     addEMIPayment,
     updateEMIPayment,
-    savedReports,
-    unlockedReportLines,
+    lockedLines,
     language,
     currentUser,
   } = useAppStore();
@@ -89,14 +88,8 @@ export default function UpdateEmiPage() {
       const lineName =
         lineCategories.find((l) => l.id === selected.lineCategoryId)?.name ??
         "";
-      const lockKey = `${lineName}|${today}`;
-      const isLocked =
-        savedReports.some(
-          (r) => r.lineName === lineName && r.reportDate === today,
-        ) && !unlockedReportLines.includes(lockKey);
-      if (isLocked) {
-        const msg = t.emiBlockedByReport.replace("{line}", lineName);
-        showAlert(msg, "error");
+      if (lockedLines.includes(lineName)) {
+        showAlert(t.lineLockedByAdmin, "error");
         return;
       }
     }

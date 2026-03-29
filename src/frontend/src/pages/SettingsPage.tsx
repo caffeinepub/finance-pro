@@ -20,13 +20,16 @@ import {
   CloudUpload,
   Download,
   Loader2,
+  Lock,
   Pencil,
   Plus,
+  Smartphone,
   Trash2,
+  Unlock,
   Upload,
   X,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useAlert } from "../components/AlertPopup";
 import { useAppStore } from "../store/appStore";
@@ -49,6 +52,9 @@ export default function SettingsPage({ onClose }: Props) {
     reportCustomFields,
     restoreFromBackup,
     uploadToCloud,
+    lockedLines,
+    lockLine,
+    unlockLine,
   } = store;
   const t = labels[language];
   const isAdmin = currentUser?.role === "admin";
@@ -82,6 +88,26 @@ export default function SettingsPage({ onClose }: Props) {
   const [isRestoring, setIsRestoring] = useState(false);
   const [restoreUploadFailed, setRestoreUploadFailed] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+
+  // PWA install prompt
+  const [deferredInstallPrompt, setDeferredInstallPrompt] = useState<any>(null);
+  const [isInstalled, setIsInstalled] = useState(false);
+  const [showInstallInstructions, setShowInstallInstructions] = useState(false);
+
+  useEffect(() => {
+    if (window.matchMedia("(display-mode: standalone)").matches) {
+      setIsInstalled(true);
+    }
+    const handler = (e: Event) => {
+      e.preventDefault();
+      setDeferredInstallPrompt(e);
+    };
+    window.addEventListener("beforeinstallprompt", handler);
+    window.addEventListener("appinstalled", () => setIsInstalled(true));
+    return () => {
+      window.removeEventListener("beforeinstallprompt", handler);
+    };
+  }, []);
 
   const handleDownloadBackup = () => {
     const backupData = {
@@ -354,6 +380,48 @@ export default function SettingsPage({ onClose }: Props) {
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog
+        open={showInstallInstructions}
+        onOpenChange={setShowInstallInstructions}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>
+              {language === "ta"
+                ? "ஆப் நிறுவுவது எப்படி?"
+                : "How to Install the App"}
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2 text-sm text-left">
+                <p>
+                  {language === "ta" ? "Chrome உலாவியில்:" : "In Chrome browser:"}
+                </p>
+                <ol className="list-decimal list-inside space-y-1">
+                  <li>
+                    {language === "ta"
+                      ? "மேல் வலதுபுறம் ⋮ (மூன்று புள்ளிகள்) தட்டவும்"
+                      : "Tap ⋮ (three dots) at the top right"}
+                  </li>
+                  <li>
+                    {language === "ta"
+                      ? '"முகப்புத் திரையில் சேர்" தட்டவும்'
+                      : 'Tap "Add to Home screen"'}
+                  </li>
+                  <li>{language === "ta" ? '"சேர்" தட்டவும்' : 'Tap "Add"'}</li>
+                </ol>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction
+              onClick={() => setShowInstallInstructions(false)}
+            >
+              {language === "ta" ? "சரி" : "OK"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <div className="flex items-center gap-2">
         <button
           type="button"
@@ -442,6 +510,47 @@ export default function SettingsPage({ onClose }: Props) {
               </p>
             </CardContent>
           </Card>
+
+          {/* Install App */}
+          {!isInstalled && (
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-sm">
+                  {language === "ta" ? "ஆப் நிறுவு" : "Install App"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <Button
+                  className="w-full"
+                  variant="outline"
+                  onClick={async () => {
+                    if (deferredInstallPrompt) {
+                      await deferredInstallPrompt.prompt();
+                      const { outcome } =
+                        await deferredInstallPrompt.userChoice;
+                      if (outcome === "accepted") {
+                        setIsInstalled(true);
+                        setDeferredInstallPrompt(null);
+                      }
+                    } else {
+                      setShowInstallInstructions(true);
+                    }
+                  }}
+                  data-ocid="settings.install_app_button"
+                >
+                  <Smartphone className="h-4 w-4 mr-2" />
+                  {language === "ta"
+                    ? "முகப்புத் திரையில் சேர்க்கவும்"
+                    : "Add to Home Screen"}
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  {language === "ta"
+                    ? "💡 பட்டன் வேலை செய்யாவிட்டால்: Chrome மெனு (⋮) → முகப்புத் திரையில் சேர்"
+                    : "💡 If button doesn't work: tap Chrome menu (⋮) → Add to Home screen"}
+                </p>
+              </CardContent>
+            </Card>
+          )}
 
           {/* Change Password */}
           <Card>
@@ -780,6 +889,58 @@ export default function SettingsPage({ onClose }: Props) {
                 </CardContent>
               </Card>
             ))}
+            <div className="pt-2 border-t border-border">
+              <div className="flex items-center gap-2 mb-3">
+                <Lock className="h-4 w-4 text-muted-foreground" />
+                <h3 className="text-sm font-semibold">{t.lineLocks}</h3>
+              </div>
+              {lineCategories.map((line, i) => {
+                const isLocked = lockedLines.includes(line.name);
+                return (
+                  <Card
+                    key={`${line.id}-lock`}
+                    className="mb-2"
+                    data-ocid={`settings.line_lock.${i + 1}`}
+                  >
+                    <CardContent className="p-3 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        {isLocked ? (
+                          <Lock className="h-4 w-4 text-destructive" />
+                        ) : (
+                          <Unlock className="h-4 w-4 text-emerald-600" />
+                        )}
+                        <span className="text-sm font-medium">{line.name}</span>
+                      </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className={
+                          isLocked
+                            ? "text-emerald-600 border-emerald-600 hover:bg-emerald-50"
+                            : "text-destructive border-destructive hover:bg-red-50"
+                        }
+                        data-ocid={`settings.line_lock_toggle.${i + 1}`}
+                        onClick={() =>
+                          isLocked ? unlockLine(line.name) : lockLine(line.name)
+                        }
+                      >
+                        {isLocked ? (
+                          <>
+                            <Unlock className="h-3 w-3 mr-1" />
+                            {t.unlockLine}
+                          </>
+                        ) : (
+                          <>
+                            <Lock className="h-3 w-3 mr-1" />
+                            {t.lockLine}
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
           </TabsContent>
         )}
       </Tabs>

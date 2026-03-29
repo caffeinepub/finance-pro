@@ -69,11 +69,11 @@ export default function DashboardPage() {
     (c) => outstandingAmount(c, emiPayments) > 0,
   ).length;
 
-  // Active Customers = customers where (current date - loan date) <= 120 days
+  // Active Customers = customers where (current date - loan date) <= 120 days AND outstanding > 0
   const activeCustomers = filteredCustomers.filter((c) => {
     const loanDateMs = new Date(c.createdAt).getTime();
     const diffDays = (todayMs - loanDateMs) / (1000 * 60 * 60 * 24);
-    return diffDays <= 120;
+    return diffDays <= 120 && outstandingAmount(c, emiPayments) > 0;
   });
   const activeLoansCount = activeCustomers.length;
 
@@ -94,7 +94,7 @@ export default function DashboardPage() {
     0,
   );
 
-  // Active Loans = sum of outstanding amounts of Active Customers (loan date <= 120 days)
+  // Active Loans = sum of outstanding amounts of Active Customers (loan date <= 120 days AND outstanding > 0)
   const activeLoansAmount = activeCustomers.reduce(
     (s, c) => s + outstandingAmount(c, emiPayments),
     0,
