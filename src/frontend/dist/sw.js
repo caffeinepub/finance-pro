@@ -1,9 +1,10 @@
-const CACHE_NAME = 'finance-pro-v1';
+const CACHE_NAME = 'finance-pro-v2';
 const SHELL_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/assets/generated/icon-512.dim_512x512.png',
+  '/assets/generated/pwa-icon-192.dim_192x192.png',
+  '/assets/generated/pwa-icon-512.dim_512x512.png',
 ];
 
 self.addEventListener('install', (event) => {
