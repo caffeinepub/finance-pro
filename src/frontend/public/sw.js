@@ -1,7 +1,5 @@
-const CACHE_NAME = 'finance-pro-v2';
+const CACHE_NAME = 'finance-pro-v4';
 const SHELL_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/assets/generated/pwa-icon-192.dim_192x192.png',
   '/assets/generated/pwa-icon-512.dim_512x512.png',
@@ -40,17 +38,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // For navigation requests, serve cached index.html (app shell)
+  // For navigation requests: network first, fall back to cache
+  // This ensures the latest HTML is always loaded after a new deployment
   if (request.mode === 'navigate') {
     event.respondWith(
-      caches.match('/index.html').then((cached) => {
-        return cached || fetch(request);
-      })
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const clone = response.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(request, clone));
+          }
+          return response;
+        })
+        .catch(() => caches.match(request))
     );
     return;
   }
 
-  // For all other requests: network first, fall back to cache
+  // For static assets: network first, fall back to cache
   event.respondWith(
     fetch(request)
       .then((response) => {
