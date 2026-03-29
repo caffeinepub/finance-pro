@@ -14,10 +14,10 @@ declare global {
   }
 }
 
-// Register service worker for PWA install support
+// Register service worker for PWA standalone install support
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js").catch(() => {
+    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
       // SW registration failed silently
     });
   });
