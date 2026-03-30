@@ -88,4 +88,6 @@ export interface backendInterface {
     setAgentAccounts(agents: Array<AgentAccount>): Promise<void>;
     setSavedReports(reports: Array<CloudSavedReport>): Promise<void>;
     setCustomerTimestamps(entries: Array<[string, string]>): Promise<void>;
+    getLockedLines(): Promise<Array<string>>;
+    setLockedLines(lines: Array<string>): Promise<void>;
 }

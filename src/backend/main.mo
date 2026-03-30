@@ -12,15 +12,14 @@ actor {
     address : Text;
     loanAmount : Float;
     loanInterest : Float;
-    loanType : Text;
     loanFee : Float;
+    loanType : Text;
     lineCategoryId : Text;
+    isActive : Bool;
     createdAt : Text;
     createdBy : Text;
-    isActive : Bool;
-    // NOTE: Do NOT add fields here — changing this type breaks stable variable
-    // deserialization on upgrade and wipes all customer data.
-    // Store extra per-customer metadata in separate stable maps instead.
+    // NOTE: loanDate is stored in customerTimestampsMap (as a separate stable variable)
+    // to avoid changing this type and causing data wipes on upgrade.
   };
 
   type EMIPayment = {
@@ -28,8 +27,8 @@ actor {
     customerId : Text;
     amount : Float;
     paymentDate : Text;
-    recordedBy : Text;
     createdAt : Text;
+    recordedBy : Text;
   };
 
   type LineCategory = {
@@ -79,6 +78,8 @@ actor {
   // Stored separately to avoid changing the Customer type (which would break
   // stable variable compatibility and wipe all data on upgrade).
   stable var stableCustomerTimestamps : [(Text, Text)] = [];
+  // Locked lines stored separately to avoid type changes on existing records.
+  stable var stableLockedLines : [Text] = [];
 
   // In-memory working maps
   var customersMap : Map.Map<Text, Customer> = Map.empty();
@@ -87,6 +88,7 @@ actor {
   var agentAccountsMap : Map.Map<Text, AgentAccount> = Map.empty();
   var savedReportsMap : Map.Map<Text, SavedReport> = Map.empty();
   var customerTimestampsMap : Map.Map<Text, Text> = Map.empty();
+  var lockedLinesSet : [Text] = [];
 
   // Reconstruct maps from stable arrays on first init
   do {
@@ -96,6 +98,7 @@ actor {
     for ((k, v) in stableAgentAccounts.vals()) { agentAccountsMap.add(k, v) };
     for ((k, v) in stableSavedReports.vals()) { savedReportsMap.add(k, v) };
     for ((k, v) in stableCustomerTimestamps.vals()) { customerTimestampsMap.add(k, v) };
+    lockedLinesSet := stableLockedLines;
   };
 
   system func preupgrade() {
@@ -105,6 +108,7 @@ actor {
     stableAgentAccounts := agentAccountsMap.entries().toArray();
     stableSavedReports := savedReportsMap.entries().toArray();
     stableCustomerTimestamps := customerTimestampsMap.entries().toArray();
+    stableLockedLines := lockedLinesSet;
   };
 
   system func postupgrade() {
@@ -120,6 +124,7 @@ actor {
     for ((k, v) in stableAgentAccounts.vals()) { agentAccountsMap.add(k, v) };
     for ((k, v) in stableSavedReports.vals()) { savedReportsMap.add(k, v) };
     for ((k, v) in stableCustomerTimestamps.vals()) { customerTimestampsMap.add(k, v) };
+    lockedLinesSet := stableLockedLines;
     // NOTE: stable arrays are intentionally NOT cleared here.
     // Keeping them ensures data can be recovered on future upgrades
     // even if the in-memory restore partially fails.
@@ -130,7 +135,15 @@ actor {
     customersMap.add(customer.id, customer);
   };
 
-  // Customer Management — bulk replace
+  public shared func deleteCustomer(id : Text) : async () {
+    customersMap.remove(id);
+  };
+
+  public query func getCustomers() : async [Customer] {
+    customersMap.values().toArray();
+  };
+
+  // Bulk replace customers
   public shared func setCustomers(customers : [Customer]) : async () {
     customersMap := Map.empty();
     for (customer in customers.vals()) {
@@ -138,25 +151,28 @@ actor {
     };
   };
 
-  public query func getCustomers() : async [Customer] {
-    customersMap.values().toArray();
+  // EMI Payment Management — individual add/update
+  public shared func addOrUpdateEMIPayment(payment : EMIPayment) : async () {
+    emiPaymentsMap.add(payment.id, payment);
   };
 
-  public shared func deleteCustomer(id : Text) : async () {
-    customersMap.remove(id);
-    customerTimestampsMap.remove(id);
-    let toRemove = Map.empty<Text, Bool>();
-    for ((pid, p) in emiPaymentsMap.entries()) {
-      if (Text.equal(p.customerId, id)) {
-        toRemove.add(pid, true);
-      };
-    };
-    for (pid in toRemove.keys()) {
-      emiPaymentsMap.remove(pid);
+  public shared func deleteEMIPayment(id : Text) : async () {
+    emiPaymentsMap.remove(id);
+  };
+
+  public query func getEMIPayments() : async [EMIPayment] {
+    emiPaymentsMap.values().toArray();
+  };
+
+  // Bulk replace EMI payments
+  public shared func setEMIPayments(payments : [EMIPayment]) : async () {
+    emiPaymentsMap := Map.empty();
+    for (payment in payments.vals()) {
+      emiPaymentsMap.add(payment.id, payment);
     };
   };
 
-  // Customer Timestamps — separate map for addedAt ISO strings
+  // Customer Timestamps — bulk replace
   public shared func setCustomerTimestamps(entries : [(Text, Text)]) : async () {
     customerTimestampsMap := Map.empty();
     for ((k, v) in entries.vals()) {
@@ -166,27 +182,6 @@ actor {
 
   public query func getCustomerTimestamps() : async [(Text, Text)] {
     customerTimestampsMap.entries().toArray();
-  };
-
-  // EMI Payments Management — individual add/update
-  public shared func addOrUpdateEMIPayment(payment : EMIPayment) : async () {
-    emiPaymentsMap.add(payment.id, payment);
-  };
-
-  // EMI Payments Management — bulk replace
-  public shared func setEMIPayments(payments : [EMIPayment]) : async () {
-    emiPaymentsMap := Map.empty();
-    for (payment in payments.vals()) {
-      emiPaymentsMap.add(payment.id, payment);
-    };
-  };
-
-  public query func getEMIPayments() : async [EMIPayment] {
-    emiPaymentsMap.values().toArray();
-  };
-
-  public shared func deleteEMIPayment(paymentId : Text) : async () {
-    emiPaymentsMap.remove(paymentId);
   };
 
   // Line Categories Management — bulk replace
@@ -238,5 +233,16 @@ actor {
 
   public shared func deleteSavedReport(id : Text) : async () {
     savedReportsMap.remove(id);
+  };
+
+  // Locked Lines Management — bulk replace
+  // Stores line names that are locked by admin.
+  public shared func setLockedLines(lines : [Text]) : async () {
+    lockedLinesSet := lines;
+    stableLockedLines := lines;
+  };
+
+  public query func getLockedLines() : async [Text] {
+    lockedLinesSet;
   };
 };

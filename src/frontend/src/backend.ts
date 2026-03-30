@@ -168,6 +168,8 @@ export interface backendInterface {
     setSavedReports(reports: Array<CloudSavedReport>): Promise<void>;
     getCustomerTimestamps(): Promise<Array<[string, string]>>;
     setCustomerTimestamps(entries: Array<[string, string]>): Promise<void>;
+    getLockedLines(): Promise<Array<string>>;
+    setLockedLines(lines: Array<string>): Promise<void>;
 }
 import type { UserRole as _UserRole, AgentAccount as _AgentAccount } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -463,6 +465,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.getCustomerTimestamps();
+            return result;
+        }
+    }
+    async getLockedLines(): Promise<Array<string>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getLockedLines();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getLockedLines();
+            return result;
+        }
+    }
+    async setLockedLines(arg0: Array<string>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setLockedLines(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setLockedLines(arg0);
             return result;
         }
     }

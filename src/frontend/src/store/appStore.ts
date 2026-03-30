@@ -7,11 +7,13 @@ import {
   loadAgentAccounts,
   loadFromCloud,
   loadLineCategories,
+  loadLockedLines,
   loadSavedReports,
   syncAllAgentsToCloud,
   syncCustomerToCloud,
   syncEMIToCloud,
   syncLineCategoriesToCloud,
+  syncLockedLinesToCloud,
   syncSavedReportToCloud,
   uploadAllLocalDataToCloud,
 } from "../utils/cloudSync";
@@ -140,9 +142,7 @@ export const useAppStore = create<AppStore>()(
       customers: [] as Customer[],
       emiPayments: [] as EMIPayment[],
       savedReports: [] as SavedReport[],
-      lockedLines: JSON.parse(
-        localStorage.getItem("financeProLockedLines") || "[]",
-      ) as string[],
+      lockedLines: [] as string[],
 
       // Local-only preferences — persisted to localStorage
       reportCustomFields: [] as ReportCustomField[],
@@ -336,13 +336,13 @@ export const useAppStore = create<AppStore>()(
 
       lockLine: (lineName) => {
         const next = [...new Set([...get().lockedLines, lineName])];
-        localStorage.setItem("financeProLockedLines", JSON.stringify(next));
         set({ lockedLines: next });
+        fireAndForget(() => syncLockedLinesToCloud(next), get().setSyncStatus);
       },
       unlockLine: (lineName) => {
         const next = get().lockedLines.filter((n) => n !== lineName);
-        localStorage.setItem("financeProLockedLines", JSON.stringify(next));
         set({ lockedLines: next });
+        fireAndForget(() => syncLockedLinesToCloud(next), get().setSyncStatus);
       },
 
       restoreFromBackup: async (data): Promise<boolean> => {
@@ -365,6 +365,7 @@ export const useAppStore = create<AppStore>()(
           lineCategories: state.lineCategories,
           agents: allUsers,
           savedReports: state.savedReports,
+          lockedLines: state.lockedLines,
         });
 
         get().setSyncStatus(success ? "synced" : "error");
@@ -418,11 +419,13 @@ export const useAppStore = create<AppStore>()(
             remoteLineCategories,
             remoteEntries,
             remoteSavedReports,
+            remoteLockedLines,
           ] = await Promise.all([
             loadFromCloud(),
             loadLineCategories(),
             loadAgentAccounts(),
             loadSavedReports(),
+            loadLockedLines(),
           ]);
 
           // Deduplicate EMIs: keep only first entry per (customerId, paymentDate)
@@ -502,6 +505,10 @@ export const useAppStore = create<AppStore>()(
               users: [...admins, ...cloudAgents],
               currentUser: updatedCurrentUser,
               savedReports,
+              lockedLines:
+                (remoteLockedLines as string[]).length >= 0
+                  ? (remoteLockedLines as string[])
+                  : s.lockedLines,
               isCloudLoaded: true,
             };
           });
@@ -519,6 +526,7 @@ export const useAppStore = create<AppStore>()(
                 lineCategories: state.lineCategories,
                 agents: allUsers,
                 savedReports: state.savedReports,
+                lockedLines: state.lockedLines,
               });
             }, setSyncStatus);
           }
@@ -539,6 +547,7 @@ export const useAppStore = create<AppStore>()(
           lineCategories: state.lineCategories,
           agents: allUsers,
           savedReports: state.savedReports,
+          lockedLines: state.lockedLines,
         });
         setSyncStatus(success ? "synced" : "error");
         return success;

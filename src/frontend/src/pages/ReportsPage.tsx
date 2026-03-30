@@ -182,9 +182,13 @@ export default function ReportsPage() {
   };
 
   const assignedLineNames = visibleLineCategories.map((l) => l.name);
-  const visibleSavedReports = isAgent
-    ? savedReports.filter((r) => assignedLineNames.includes(r.lineName))
-    : savedReports;
+  const visibleSavedReports = (
+    isAgent
+      ? savedReports.filter((r) => assignedLineNames.includes(r.lineName))
+      : [...savedReports]
+  ).sort(
+    (a, b) => new Date(b.savedAt).getTime() - new Date(a.savedAt).getTime(),
+  );
 
   return (
     <div data-ocid="reports.page" className="space-y-4">

@@ -233,6 +233,7 @@ export async function uploadAllLocalDataToCloud(params: {
   lineCategories: LineCategory[];
   agents: AgentAccount[];
   savedReports: SavedReport[];
+  lockedLines?: string[];
 }): Promise<boolean> {
   // Always reset cache to force fresh actor — avoids stale/broken connection
   actorCache = null;
@@ -257,6 +258,9 @@ export async function uploadAllLocalDataToCloud(params: {
       await actor.setAgentAccounts(params.agents);
       await actor.setSavedReports(params.savedReports.map(savedReportToCloud));
       await actor.setCustomerTimestamps(timestampEntries);
+      if (params.lockedLines !== undefined) {
+        await actor.setLockedLines(params.lockedLines);
+      }
       return true;
     } catch {
       actorCache = null; // reset on failure so next attempt gets fresh actor
@@ -266,4 +270,23 @@ export async function uploadAllLocalDataToCloud(params: {
     }
   }
   return false;
+}
+
+// Locked Lines — cloud sync
+export async function loadLockedLines(): Promise<string[]> {
+  try {
+    const actor = await getActor();
+    return await actor.getLockedLines();
+  } catch {
+    return [];
+  }
+}
+
+export async function syncLockedLinesToCloud(lines: string[]): Promise<void> {
+  try {
+    const actor = await getActor();
+    await actor.setLockedLines(lines);
+  } catch {
+    // best-effort; silently swallow
+  }
 }
