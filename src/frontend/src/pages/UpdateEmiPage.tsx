@@ -93,7 +93,9 @@ export default function UpdateEmiPage() {
         return;
       }
     }
-    const exists = emiPayments.find(
+    // Re-check against latest store state to guard against concurrent submissions
+    const latestEMIs = useAppStore.getState().emiPayments;
+    const exists = latestEMIs.find(
       (e) => e.customerId === selected.id && e.paymentDate === date,
     );
     if (exists) {

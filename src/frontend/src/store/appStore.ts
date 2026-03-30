@@ -425,9 +425,26 @@ export const useAppStore = create<AppStore>()(
             loadSavedReports(),
           ]);
 
+          // Deduplicate EMIs: keep only first entry per (customerId, paymentDate)
+          let hadDuplicates = false;
+          const deduplicatedEMIs = (() => {
+            const rawEMIs = remoteEMIs as unknown as EMIPayment[];
+            const seenKeys = new Set<string>();
+            const result: EMIPayment[] = [];
+            for (const e of rawEMIs) {
+              const key = `${e.customerId}|${e.paymentDate}`;
+              if (!seenKeys.has(key)) {
+                seenKeys.add(key);
+                result.push(e);
+              }
+            }
+            hadDuplicates = rawEMIs.length !== result.length;
+            return result;
+          })();
+
           set((s) => {
             const customers = remoteCustomers as unknown as Customer[];
-            const emiPayments = remoteEMIs as unknown as EMIPayment[];
+            const emiPayments = deduplicatedEMIs;
             const savedReports = remoteSavedReports as SavedReport[];
 
             const lineCategories =
@@ -490,6 +507,21 @@ export const useAppStore = create<AppStore>()(
           });
 
           setSyncStatus("synced");
+
+          // If duplicates were found, re-sync the clean list to cloud
+          if (hadDuplicates) {
+            const state = get();
+            const allUsers = buildCloudUsersPayload(state.users);
+            fireAndForget(async () => {
+              await uploadAllLocalDataToCloud({
+                customers: state.customers,
+                emiPayments: state.emiPayments,
+                lineCategories: state.lineCategories,
+                agents: allUsers,
+                savedReports: state.savedReports,
+              });
+            }, setSyncStatus);
+          }
         } catch {
           setSyncStatus("error");
           set({ isCloudLoaded: true }); // unblock loading screen even on error

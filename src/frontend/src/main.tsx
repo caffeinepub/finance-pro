@@ -14,20 +14,6 @@ declare global {
   }
 }
 
-// Register service worker for PWA installability
-if ("serviceWorker" in navigator) {
-  window.addEventListener("load", () => {
-    navigator.serviceWorker
-      .register("/sw.js", { scope: "/" })
-      .then((reg) => {
-        console.log("[PWA] Service worker registered:", reg.scope);
-      })
-      .catch((err) => {
-        console.warn("[PWA] Service worker registration failed:", err);
-      });
-  });
-}
-
 const queryClient = new QueryClient();
 
 ReactDOM.createRoot(document.getElementById("root")!).render(
