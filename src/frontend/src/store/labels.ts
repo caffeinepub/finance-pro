@@ -109,6 +109,13 @@ export const labels = {
     enableDashboard: "Enable Dashboard",
     dashboardAccess: "Dashboard Access",
     allLines: "All Lines",
+    downloadExcel: "Download Excel",
+    downloadToday: "Download Today",
+    downloadDateRange: "Download Date Range",
+    downloadAll: "Download All Records",
+    startDate: "Start Date",
+    endDate: "End Date",
+    download: "Download",
   },
   ta: {
     appName:
@@ -272,6 +279,18 @@ export const labels = {
       "\u0b9f\u0bbe\u0bb7\u0bcd\u0baa\u0bcb\u0bb0\u0bcd\u0b9f\u0bc1 \u0b85\u0ba3\u0bc1\u0b95\u0bb2\u0bcd",
     allLines:
       "\u0b85\u0ba9\u0bc8\u0ba4\u0bcd\u0ba4\u0bc1 \u0bb5\u0bb0\u0bbf\u0b9a\u0bc8\u0b95\u0bb3\u0bcd",
+    downloadExcel:
+      "Excel \u0baa\u0ba4\u0bbf\u0bb5\u0bbf\u0bb1\u0b95\u0bcd\u0b95\u0bae\u0bcd",
+    downloadToday:
+      "\u0b87\u0ba9\u0bcd\u0bb1\u0bc1 \u0baa\u0ba4\u0bbf\u0bb5\u0bbf\u0bb1\u0b95\u0bcd\u0b95\u0bae\u0bcd",
+    downloadDateRange:
+      "\u0ba4\u0bc7\u0ba4\u0bbf \u0bb5\u0bb0\u0bae\u0bcd\u0baa\u0bc1 \u0baa\u0ba4\u0bbf\u0bb5\u0bbf\u0bb1\u0b95\u0bcd\u0b95\u0bae\u0bcd",
+    downloadAll:
+      "\u0b85\u0ba9\u0bc8\u0ba4\u0bcd\u0ba4\u0bc1\u0bae\u0bcd \u0baa\u0ba4\u0bbf\u0bb5\u0bbf\u0bb1\u0b95\u0bcd\u0b95\u0bae\u0bcd",
+    startDate: "\u0ba4\u0bca\u0b9f\u0b95\u0bcd\u0b95 \u0ba4\u0bc7\u0ba4\u0bbf",
+    endDate: "\u0bae\u0bc1\u0b9f\u0bbf\u0bb5\u0bc1 \u0ba4\u0bc7\u0ba4\u0bbf",
+    download:
+      "\u0baa\u0ba4\u0bbf\u0bb5\u0bbf\u0bb1\u0b95\u0bcd\u0b95\u0bae\u0bcd",
   },
 };
 

@@ -1,5 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -17,7 +23,7 @@ import { useAppStore } from "../store/appStore";
 import { labels } from "../store/labels";
 import type { SavedReport } from "../store/types";
 import { formatDate } from "../utils/dateFormat";
-import { exportReport } from "../utils/excel";
+import { exportSavedReports } from "../utils/excel";
 import { formatINR } from "../utils/formatINR";
 
 interface DynField {
@@ -58,6 +64,9 @@ export default function ReportsPage() {
   const [dynLeft, setDynLeft] = useState<DynField[]>([]);
   const [dynRight, setDynRight] = useState<DynField[]>([]);
   const [viewReport, setViewReport] = useState<SavedReport | null>(null);
+  const [showDateRange, setShowDateRange] = useState(false);
+  const [dlStartDate, setDlStartDate] = useState("");
+  const [dlEndDate, setDlEndDate] = useState("");
 
   const filteredCustomers = useMemo(() => {
     return customers.filter((c) => {
@@ -119,33 +128,6 @@ export default function ReportsPage() {
 
   const currentLineName =
     lineCategories.find((l) => l.id === lineId)?.name ?? lineId;
-
-  const handleExport = () => {
-    const data: Record<string, number | string> = {
-      Date: formatDate(reportDate),
-      Line: currentLineName,
-      [t.preAmount]: Number(preAmount) || 0,
-      [t.collection]: collection,
-      [t.loanFee]: loanFee,
-      ...Object.fromEntries(
-        dynLeft.map((f) => [f.label || "Custom Left", Number(f.value) || 0]),
-      ),
-      [t.lending]: lending,
-      [t.expense]: Number(expense) || 0,
-      ...Object.fromEntries(
-        dynRight.map((f) => [f.label || "Custom Right", Number(f.value) || 0]),
-      ),
-      [t.reminder]: reminder,
-    };
-    exportReport(
-      data,
-      reportDate,
-      currentLineName,
-      filteredCustomers,
-      lineCategories,
-      filteredEmis,
-    );
-  };
 
   const handleSaveReport = () => {
     // Check for duplicate: same line + same date
@@ -412,7 +394,8 @@ export default function ReportsPage() {
           >
             <CardContent className="p-4 text-center">
               <p className="text-sm text-muted-foreground">
-                {t.reminder} / மீதி இருப்பு
+                {t.reminder} / \u0bae\u0bc0\u0ba4\u0bbf
+                \u0b87\u0bb0\u0bc1\u0baa\u0bcd\u0baa\u0bc1
               </p>
               <p
                 className={`text-3xl font-bold mt-1 ${
@@ -424,29 +407,102 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          <div className="grid grid-cols-2 gap-3">
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={handleSaveReport}
-              data-ocid="reports.save_button"
-            >
-              <Save className="h-4 w-4 mr-2" />
-              {t.saveReport}
-            </Button>
-            <Button
-              className="w-full"
-              onClick={handleExport}
-              data-ocid="reports.export_button"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              {t.exportExcel}
-            </Button>
-          </div>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={handleSaveReport}
+            data-ocid="reports.save_button"
+          >
+            <Save className="h-4 w-4 mr-2" />
+            {t.saveReport}
+          </Button>
         </TabsContent>
 
         {/* SAVED REPORTS TAB */}
         <TabsContent value="saved" className="space-y-3 mt-4">
+          {/* Download Excel - Admin only */}
+          {!isAgent && (
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    className="w-full mb-3"
+                    data-ocid="reports.download_excel_button"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    {t.downloadExcel}
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56">
+                  <DropdownMenuItem
+                    onClick={() =>
+                      exportSavedReports(visibleSavedReports, "today")
+                    }
+                  >
+                    {t.downloadToday}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() => setShowDateRange(!showDateRange)}
+                  >
+                    {t.downloadDateRange}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem
+                    onClick={() =>
+                      exportSavedReports(visibleSavedReports, "all")
+                    }
+                  >
+                    {t.downloadAll}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              {showDateRange && (
+                <div className="flex flex-col gap-2 p-3 border rounded-lg mb-3 bg-muted/30">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">{t.startDate}</Label>
+                      <Input
+                        type="date"
+                        value={dlStartDate}
+                        onChange={(e) => setDlStartDate(e.target.value)}
+                        className="h-8 text-xs"
+                        data-ocid="reports.start_date_input"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">{t.endDate}</Label>
+                      <Input
+                        type="date"
+                        value={dlEndDate}
+                        onChange={(e) => setDlEndDate(e.target.value)}
+                        className="h-8 text-xs"
+                        data-ocid="reports.end_date_input"
+                      />
+                    </div>
+                  </div>
+                  <Button
+                    size="sm"
+                    className="w-full h-8 text-xs"
+                    onClick={() => {
+                      exportSavedReports(
+                        visibleSavedReports,
+                        "range",
+                        dlStartDate,
+                        dlEndDate,
+                      );
+                      setShowDateRange(false);
+                    }}
+                    disabled={!dlStartDate || !dlEndDate}
+                    data-ocid="reports.download_range_button"
+                  >
+                    <Download className="h-3 w-3 mr-1" /> {t.download}
+                  </Button>
+                </div>
+              )}
+            </>
+          )}
+
           {visibleSavedReports.length === 0 ? (
             <div
               className="text-center text-muted-foreground py-10 text-sm"
@@ -554,7 +610,7 @@ export default function ReportsPage() {
                 data-ocid="reports.view_report.close_button"
                 onClick={() => setViewReport(null)}
               >
-                ✕
+                \u2715
               </button>
             </div>
             <div className="p-4 space-y-3">

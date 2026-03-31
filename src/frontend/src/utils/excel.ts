@@ -5,7 +5,12 @@ import {
   outstandingAmount,
   paidAmount,
 } from "../store/calculations";
-import type { Customer, EMIPayment, LineCategory } from "../store/types";
+import type {
+  Customer,
+  EMIPayment,
+  LineCategory,
+  SavedReport,
+} from "../store/types";
 
 function fmtDate(dateStr: string): string {
   if (!dateStr) return "";
@@ -173,4 +178,60 @@ export function exportReport(
   XLSX.utils.book_append_sheet(wb, ws3, "EMI History");
 
   XLSX.writeFile(wb, `report-${date}-${line}.xlsx`);
+}
+
+export function exportSavedReports(
+  reports: SavedReport[],
+  filterType: "today" | "range" | "all",
+  startDate?: string,
+  endDate?: string,
+) {
+  const today = new Date().toISOString().split("T")[0];
+  let filtered = reports;
+  if (filterType === "today") {
+    filtered = reports.filter((r) => r.reportDate === today);
+  } else if (filterType === "range" && startDate && endDate) {
+    filtered = reports.filter(
+      (r) => r.reportDate >= startDate && r.reportDate <= endDate,
+    );
+  }
+
+  // Build tabular data: Row 1 = headers, Row 2+ = one record per row
+  const data = filtered.map((r) => ({
+    Date: fmtDate(r.reportDate),
+    Line: r.lineName,
+    "Pre Amount": r.preAmount,
+    Collection: r.collection,
+    "Loan Fee": r.loanFee,
+    Lending: r.lending,
+    Expense: r.expense,
+    Reminder: r.reminder,
+  }));
+
+  // If no data, still create a file with headers
+  const ws = XLSX.utils.json_to_sheet(
+    data.length
+      ? data
+      : [
+          {
+            Date: "",
+            Line: "",
+            "Pre Amount": "",
+            Collection: "",
+            "Loan Fee": "",
+            Lending: "",
+            Expense: "",
+            Reminder: "",
+          },
+        ],
+  );
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, "Saved Reports");
+
+  let filename = "saved-reports-all.xlsx";
+  if (filterType === "today") filename = `saved-reports-${today}.xlsx`;
+  else if (filterType === "range" && startDate && endDate)
+    filename = `saved-reports-${startDate}-to-${endDate}.xlsx`;
+
+  XLSX.writeFile(wb, filename);
 }
