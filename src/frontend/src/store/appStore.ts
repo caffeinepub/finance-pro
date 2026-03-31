@@ -505,10 +505,11 @@ export const useAppStore = create<AppStore>()(
               users: [...admins, ...cloudAgents],
               currentUser: updatedCurrentUser,
               savedReports,
+              // Only update lockedLines if the cloud call succeeded (non-null).
+              // null means the call failed — keep existing locks to prevent silent unlock.
+              // [] means admin intentionally unlocked all lines — apply it.
               lockedLines:
-                (remoteLockedLines as string[]).length >= 0
-                  ? (remoteLockedLines as string[])
-                  : s.lockedLines,
+                remoteLockedLines !== null ? remoteLockedLines : s.lockedLines,
               isCloudLoaded: true,
             };
           });

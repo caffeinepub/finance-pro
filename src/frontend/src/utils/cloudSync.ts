@@ -273,12 +273,15 @@ export async function uploadAllLocalDataToCloud(params: {
 }
 
 // Locked Lines — cloud sync
-export async function loadLockedLines(): Promise<string[]> {
+// Returns null on error (to distinguish from "admin intentionally unlocked all lines")
+export async function loadLockedLines(): Promise<string[] | null> {
   try {
     const actor = await getActor();
     return await actor.getLockedLines();
   } catch {
-    return [];
+    // Return null so the caller can keep the existing lock state
+    // instead of silently wiping all locks on a network error
+    return null;
   }
 }
 
