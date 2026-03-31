@@ -58,16 +58,18 @@ export default function RecordsPage() {
     ? customers.filter((c) => assignedLines.includes(c.lineCategoryId))
     : customers;
 
-  const filtered = accessibleCustomers.filter((c) => {
-    const matchLine = lineFilter === "all" || c.lineCategoryId === lineFilter;
-    const q = search.toLowerCase();
-    const matchSearch =
-      !q ||
-      c.name.toLowerCase().includes(q) ||
-      c.serialNumber.toLowerCase().includes(q) ||
-      c.address.toLowerCase().includes(q);
-    return matchLine && matchSearch;
-  });
+  const filtered = accessibleCustomers
+    .filter((c) => {
+      const matchLine = lineFilter === "all" || c.lineCategoryId === lineFilter;
+      const q = search.toLowerCase();
+      const matchSearch =
+        !q ||
+        c.name.toLowerCase().includes(q) ||
+        c.serialNumber.toLowerCase().includes(q) ||
+        c.address.toLowerCase().includes(q);
+      return matchLine && matchSearch;
+    })
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 
   const customerEmis = (id: string) =>
     emiPayments
