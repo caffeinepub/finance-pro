@@ -393,10 +393,7 @@ export default function ReportsPage() {
             data-ocid="reports.reminder_card"
           >
             <CardContent className="p-4 text-center">
-              <p className="text-sm text-muted-foreground">
-                {t.reminder} / \u0bae\u0bc0\u0ba4\u0bbf
-                \u0b87\u0bb0\u0bc1\u0baa\u0bcd\u0baa\u0bc1
-              </p>
+              <p className="text-sm text-muted-foreground">{t.reminder}</p>
               <p
                 className={`text-3xl font-bold mt-1 ${
                   reminder >= 0 ? "text-emerald-600" : "text-destructive"
@@ -610,7 +607,7 @@ export default function ReportsPage() {
                 data-ocid="reports.view_report.close_button"
                 onClick={() => setViewReport(null)}
               >
-                \u2715
+                ✕
               </button>
             </div>
             <div className="p-4 space-y-3">
