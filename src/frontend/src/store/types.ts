@@ -70,6 +70,8 @@ export interface SavedReport {
   reminder: number;
   savedAt: string;
   savedBy: string;
+  actualAmount?: number;
+  amountStatus?: "shortage" | "high" | "ok";
 }
 
 export interface AppState {

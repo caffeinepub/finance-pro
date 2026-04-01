@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Download, Plus, Save, Trash2 } from "lucide-react";
+import { AlertTriangle, Download, Plus, Save, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useAlert } from "../components/AlertPopup";
 import { useAppStore } from "../store/appStore";
@@ -67,6 +67,7 @@ export default function ReportsPage() {
   const [showDateRange, setShowDateRange] = useState(false);
   const [dlStartDate, setDlStartDate] = useState("");
   const [dlEndDate, setDlEndDate] = useState("");
+  const [actualAmount, setActualAmount] = useState("");
 
   const filteredCustomers = useMemo(() => {
     return customers.filter((c) => {
@@ -110,6 +111,16 @@ export default function ReportsPage() {
     (Number(expense) || 0) +
     dynRight.reduce((s, f) => s + (Number(f.value) || 0), 0);
   const reminder = leftTotal - rightTotal;
+
+  const actualAmountNum = Number(actualAmount) || 0;
+  const amountStatus =
+    actualAmount === ""
+      ? null
+      : actualAmountNum < reminder
+        ? "shortage"
+        : actualAmountNum > reminder
+          ? "high"
+          : "ok";
 
   const addDynLeft = () =>
     setDynLeft((f) => [
@@ -159,6 +170,8 @@ export default function ReportsPage() {
       rightTotal,
       reminder,
       savedBy: currentUser?.username ?? "",
+      actualAmount: actualAmountNum,
+      amountStatus: amountStatus ?? "ok",
     });
     showAlert(t.reportSaved, "success");
   };
@@ -404,6 +417,41 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
+          {/* Actual Amount Field */}
+          <div className="space-y-2">
+            <Label className="text-sm font-medium">{t.actualAmount}</Label>
+            <Input
+              type="number"
+              value={actualAmount}
+              onChange={(e) => setActualAmount(e.target.value)}
+              placeholder="0"
+              data-ocid="reports.actual_amount_input"
+            />
+            {amountStatus === "shortage" && (
+              <div
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-red-50 border border-red-300 text-red-700"
+                data-ocid="reports.shortage_warning"
+              >
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                {t.shortageWarning}
+              </div>
+            )}
+            {amountStatus === "high" && (
+              <div
+                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-amber-50 border border-amber-300 text-amber-700"
+                data-ocid="reports.high_warning"
+              >
+                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
+                {t.highWarning}
+              </div>
+            )}
+            {amountStatus === "ok" && (
+              <p className="text-sm text-emerald-600 font-medium">
+                {t.amountMatchesReminder}
+              </p>
+            )}
+          </div>
+
           <Button
             variant="outline"
             className="w-full"
@@ -521,8 +569,23 @@ export default function ReportsPage() {
                       className="text-left flex-1"
                       onClick={() => setViewReport(r)}
                     >
-                      <CardTitle className="text-sm font-semibold">
+                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
                         {formatDate(r.reportDate)} — {r.lineName}
+                        {(r.amountStatus === "shortage" ||
+                          r.amountStatus === "high") && (
+                          <span
+                            className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                              r.amountStatus === "shortage"
+                                ? "bg-red-100 text-red-700"
+                                : "bg-amber-100 text-amber-700"
+                            }`}
+                          >
+                            <AlertTriangle className="h-2.5 w-2.5" />
+                            {r.amountStatus === "shortage"
+                              ? "Shortage"
+                              : "High"}
+                          </span>
+                        )}
                       </CardTitle>
                     </button>
                     <div className="flex items-center gap-1">
@@ -668,6 +731,68 @@ export default function ReportsPage() {
                   {formatINR(viewReport.reminder)}
                 </p>
               </div>
+
+              {/* Actual Amount section in modal */}
+              {viewReport.actualAmount !== undefined &&
+                viewReport.actualAmount > 0 && (
+                  <div className="space-y-2">
+                    <div
+                      className={`rounded-xl p-3 border ${
+                        viewReport.amountStatus === "shortage"
+                          ? "bg-red-50 border-red-200"
+                          : viewReport.amountStatus === "high"
+                            ? "bg-amber-50 border-amber-200"
+                            : "bg-emerald-50 border-emerald-200"
+                      }`}
+                    >
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-muted-foreground">
+                          {t.actualAmount}
+                        </p>
+                        <p
+                          className={`text-lg font-bold ${
+                            viewReport.amountStatus === "shortage"
+                              ? "text-red-700"
+                              : viewReport.amountStatus === "high"
+                                ? "text-amber-700"
+                                : "text-emerald-600"
+                          }`}
+                        >
+                          {formatINR(viewReport.actualAmount)}
+                        </p>
+                      </div>
+                      {(viewReport.amountStatus === "shortage" ||
+                        viewReport.amountStatus === "high") && (
+                        <div className="flex items-center gap-1.5 mt-1.5">
+                          <AlertTriangle
+                            className={`h-3.5 w-3.5 ${
+                              viewReport.amountStatus === "shortage"
+                                ? "text-red-600"
+                                : "text-amber-600"
+                            }`}
+                          />
+                          <p
+                            className={`text-xs font-medium ${
+                              viewReport.amountStatus === "shortage"
+                                ? "text-red-700"
+                                : "text-amber-700"
+                            }`}
+                          >
+                            {viewReport.amountStatus === "shortage"
+                              ? t.shortageWarning
+                              : t.highWarning}
+                          </p>
+                        </div>
+                      )}
+                      {viewReport.amountStatus === "ok" && (
+                        <p className="text-xs text-emerald-600 mt-1">
+                          {t.amountMatchesReminder}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+
               <p className="text-xs text-center text-muted-foreground">
                 Saved by {viewReport.savedBy} ·{" "}
                 {new Date(viewReport.savedAt).toLocaleString()}
