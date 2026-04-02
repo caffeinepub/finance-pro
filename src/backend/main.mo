@@ -65,6 +65,12 @@ actor {
     savedBy : Text;
   };
 
+  // Customer media: photo URL + ID proof URLs stored separately to avoid Customer type changes.
+  type CustomerMedia = {
+    photoUrl : Text;
+    idProofUrls : [Text];
+  };
+
   let accessControlState = AccessControl.initState();
   include MixinAuthorization(accessControlState);
 
@@ -75,11 +81,11 @@ actor {
   stable var stableAgentAccounts : [(Text, AgentAccount)] = [];
   stable var stableSavedReports : [(Text, SavedReport)] = [];
   // Separate map for customer addedAt timestamps (customerId -> ISO string).
-  // Stored separately to avoid changing the Customer type (which would break
-  // stable variable compatibility and wipe all data on upgrade).
   stable var stableCustomerTimestamps : [(Text, Text)] = [];
   // Locked lines stored separately to avoid type changes on existing records.
   stable var stableLockedLines : [Text] = [];
+  // Customer media (photo + ID proof URLs) stored separately.
+  stable var stableCustomerMedia : [(Text, CustomerMedia)] = [];
 
   // In-memory working maps
   var customersMap : Map.Map<Text, Customer> = Map.empty();
@@ -89,6 +95,7 @@ actor {
   var savedReportsMap : Map.Map<Text, SavedReport> = Map.empty();
   var customerTimestampsMap : Map.Map<Text, Text> = Map.empty();
   var lockedLinesSet : [Text] = [];
+  var customerMediaMap : Map.Map<Text, CustomerMedia> = Map.empty();
 
   // Reconstruct maps from stable arrays on first init
   do {
@@ -99,6 +106,7 @@ actor {
     for ((k, v) in stableSavedReports.vals()) { savedReportsMap.add(k, v) };
     for ((k, v) in stableCustomerTimestamps.vals()) { customerTimestampsMap.add(k, v) };
     lockedLinesSet := stableLockedLines;
+    for ((k, v) in stableCustomerMedia.vals()) { customerMediaMap.add(k, v) };
   };
 
   system func preupgrade() {
@@ -109,6 +117,7 @@ actor {
     stableSavedReports := savedReportsMap.entries().toArray();
     stableCustomerTimestamps := customerTimestampsMap.entries().toArray();
     stableLockedLines := lockedLinesSet;
+    stableCustomerMedia := customerMediaMap.entries().toArray();
   };
 
   system func postupgrade() {
@@ -118,6 +127,7 @@ actor {
     agentAccountsMap := Map.empty();
     savedReportsMap := Map.empty();
     customerTimestampsMap := Map.empty();
+    customerMediaMap := Map.empty();
     for ((k, v) in stableCustomers.vals()) { customersMap.add(k, v) };
     for ((k, v) in stableEMIPayments.vals()) { emiPaymentsMap.add(k, v) };
     for ((k, v) in stableLineCategories.vals()) { lineCategoriesMap.add(k, v) };
@@ -125,9 +135,8 @@ actor {
     for ((k, v) in stableSavedReports.vals()) { savedReportsMap.add(k, v) };
     for ((k, v) in stableCustomerTimestamps.vals()) { customerTimestampsMap.add(k, v) };
     lockedLinesSet := stableLockedLines;
+    for ((k, v) in stableCustomerMedia.vals()) { customerMediaMap.add(k, v) };
     // NOTE: stable arrays are intentionally NOT cleared here.
-    // Keeping them ensures data can be recovered on future upgrades
-    // even if the in-memory restore partially fails.
   };
 
   // Customer Management — individual add/update
@@ -137,6 +146,7 @@ actor {
 
   public shared func deleteCustomer(id : Text) : async () {
     customersMap.remove(id);
+    customerMediaMap.remove(id);
   };
 
   public query func getCustomers() : async [Customer] {
@@ -197,10 +207,6 @@ actor {
   };
 
   // Agent Accounts Management — bulk replace
-  // NOTE: Extra agent properties (e.g. dashboard access) are encoded as
-  // special marker strings inside assignedLines (e.g. "__dash_on__") and
-  // decoded by the frontend. This avoids any record type changes that would
-  // break stable variable compatibility on canister upgrade.
   public shared func setAgentAccounts(agents : [AgentAccount]) : async () {
     agentAccountsMap := Map.empty();
     for (agent in agents.vals()) {
@@ -236,7 +242,6 @@ actor {
   };
 
   // Locked Lines Management — bulk replace
-  // Stores line names that are locked by admin.
   public shared func setLockedLines(lines : [Text]) : async () {
     lockedLinesSet := lines;
     stableLockedLines := lines;
@@ -244,5 +249,18 @@ actor {
 
   public query func getLockedLines() : async [Text] {
     lockedLinesSet;
+  };
+
+  // Customer Media Management — store photo and ID proof URLs per customer
+  public shared func setCustomerMedia(customerId : Text, media : CustomerMedia) : async () {
+    customerMediaMap.add(customerId, media);
+  };
+
+  public query func getCustomerMedia() : async [(Text, CustomerMedia)] {
+    customerMediaMap.entries().toArray();
+  };
+
+  public shared func deleteCustomerMedia(customerId : Text) : async () {
+    customerMediaMap.remove(customerId);
   };
 };

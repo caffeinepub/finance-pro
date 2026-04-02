@@ -40,6 +40,10 @@ export interface AgentAccount {
   'password' : string,
   'assignedLines' : Array<string>,
 }
+export interface CustomerMedia {
+  'photoUrl' : string,
+  'idProofUrls' : Array<string>,
+}
 export interface CloudSavedReport {
   'id' : string,
   'reportDate' : string,
@@ -69,6 +73,7 @@ export interface _SERVICE {
   'deleteCustomer' : ActorMethod<[string], undefined>,
   'deleteEMIPayment' : ActorMethod<[string], undefined>,
   'deleteSavedReport' : ActorMethod<[string], undefined>,
+  'deleteCustomerMedia' : ActorMethod<[string], undefined>,
   'getCallerUserRole' : ActorMethod<[], UserRole>,
   'getCustomers' : ActorMethod<[], Array<Customer>>,
   'getEMIPayments' : ActorMethod<[], Array<EMIPayment>>,
@@ -76,6 +81,7 @@ export interface _SERVICE {
   'getLineCategories' : ActorMethod<[], Array<LineCategory>>,
   'getSavedReports' : ActorMethod<[], Array<CloudSavedReport>>,
   'getCustomerTimestamps' : ActorMethod<[], Array<[string, string]>>,
+  'getCustomerMedia' : ActorMethod<[], Array<[string, CustomerMedia]>>,
   'getLockedLines' : ActorMethod<[], Array<string>>,
   'isCallerAdmin' : ActorMethod<[], boolean>,
   'setCustomers' : ActorMethod<[Array<Customer>], undefined>,
@@ -85,6 +91,7 @@ export interface _SERVICE {
   'setSavedReports' : ActorMethod<[Array<CloudSavedReport>], undefined>,
   'setCustomerTimestamps' : ActorMethod<[Array<[string, string]>], undefined>,
   'setLockedLines' : ActorMethod<[Array<string>], undefined>,
+  'setCustomerMedia' : ActorMethod<[string, CustomerMedia], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

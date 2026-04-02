@@ -58,7 +58,7 @@ interface AppStore extends AppState {
   updateLineCategory: (id: string, name: string) => void;
   deleteLineCategory: (id: string) => void;
   addCustomer: (
-    c: Omit<Customer, "id" | "createdAt" | "createdBy"> & { loanDate?: string },
+    c: Omit<Customer, "createdAt" | "createdBy"> & { loanDate?: string },
   ) => void;
   updateCustomer: (id: string, c: Partial<Customer>) => void;
   deleteCustomer: (id: string) => void;
@@ -75,6 +75,11 @@ interface AppStore extends AppState {
   lockedLines: string[];
   lockLine: (lineName: string) => void;
   unlockLine: (lineName: string) => void;
+  customerMedia: Record<string, { photoUrl: string; idProofUrls: string[] }>;
+  setCustomerMedia: (
+    customerId: string,
+    media: { photoUrl: string; idProofUrls: string[] },
+  ) => void;
   restoreFromBackup: (data: {
     customers?: Customer[];
     emiPayments?: EMIPayment[];
@@ -143,6 +148,10 @@ export const useAppStore = create<AppStore>()(
       emiPayments: [] as EMIPayment[],
       savedReports: [] as SavedReport[],
       lockedLines: [] as string[],
+      customerMedia: {} as Record<
+        string,
+        { photoUrl: string; idProofUrls: string[] }
+      >,
 
       // Local-only preferences — persisted to localStorage
       reportCustomFields: [] as ReportCustomField[],
@@ -203,11 +212,11 @@ export const useAppStore = create<AppStore>()(
       addCustomer: (c) => {
         const { loanDate, ...fields } = c as Omit<
           Customer,
-          "id" | "createdAt" | "createdBy"
+          "createdAt" | "createdBy"
         > & { loanDate?: string };
         const newCustomer: Customer = {
           ...fields,
-          id: crypto.randomUUID(),
+          id: fields.id ?? crypto.randomUUID(),
           createdAt: loanDate ?? new Date().toISOString().split("T")[0],
           addedAt: new Date().toISOString(),
           createdBy: get().currentUser?.id ?? "u1",
@@ -338,6 +347,11 @@ export const useAppStore = create<AppStore>()(
         const next = [...new Set([...get().lockedLines, lineName])];
         set({ lockedLines: next });
         fireAndForget(() => syncLockedLinesToCloud(next), get().setSyncStatus);
+      },
+      setCustomerMedia: (customerId, media) => {
+        set((s) => ({
+          customerMedia: { ...s.customerMedia, [customerId]: media },
+        }));
       },
       unlockLine: (lineName) => {
         const next = get().lockedLines.filter((n) => n !== lineName);
@@ -563,6 +577,7 @@ export const useAppStore = create<AppStore>()(
         language: state.language,
         currentUser: state.currentUser,
         reportCustomFields: state.reportCustomFields,
+        customerMedia: state.customerMedia,
       }),
     },
   ),

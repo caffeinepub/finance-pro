@@ -74,6 +74,11 @@ export interface SavedReport {
   amountStatus?: "shortage" | "high" | "ok";
 }
 
+export interface CustomerMedia {
+  photoUrl: string;
+  idProofUrls: string[];
+}
+
 export interface AppState {
   users: User[];
   lineCategories: LineCategory[];
@@ -81,6 +86,7 @@ export interface AppState {
   emiPayments: EMIPayment[];
   reportCustomFields: ReportCustomField[];
   savedReports: SavedReport[];
+  customerMedia: Record<string, CustomerMedia>;
   currentUser: User | null;
   language: "en" | "ta";
 }

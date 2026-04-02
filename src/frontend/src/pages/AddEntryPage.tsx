@@ -9,14 +9,70 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Search, UserCheck, X } from "lucide-react";
+import { HttpAgent } from "@icp-sdk/core/agent";
+import {
+  Camera,
+  FileImage,
+  Loader2,
+  Search,
+  Trash2,
+  UserCheck,
+  X,
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAlert } from "../components/AlertPopup";
+import { loadConfig } from "../config";
 import { useAppStore } from "../store/appStore";
 import { loanRepayAmount } from "../store/calculations";
 import { labels } from "../store/labels";
 import type { LoanType } from "../store/types";
+import { StorageClient } from "../utils/StorageClient";
 import { formatINR } from "../utils/formatINR";
+
+// Compress an image file using canvas before upload/preview to avoid OOM crashes
+async function compressImage(
+  file: File,
+  maxWidth: number,
+  maxHeight: number,
+  quality = 0.82,
+): Promise<File> {
+  return new Promise((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { width, height } = img;
+      const ratio = Math.min(maxWidth / width, maxHeight / height, 1);
+      width = Math.round(width * ratio);
+      height = Math.round(height * ratio);
+      const canvas = document.createElement("canvas");
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext("2d");
+      if (!ctx) {
+        resolve(file);
+        return;
+      }
+      ctx.drawImage(img, 0, 0, width, height);
+      canvas.toBlob(
+        (blob) => {
+          if (!blob) {
+            resolve(file);
+            return;
+          }
+          resolve(new File([blob], file.name, { type: "image/jpeg" }));
+        },
+        "image/jpeg",
+        quality,
+      );
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("Failed to load image"));
+    };
+    img.src = url;
+  });
+}
 
 const ERR_REQUIRED = { en: "Required", ta: "தேவை" };
 const ERR_PHONE = {
@@ -58,6 +114,7 @@ export default function AddEntryPage() {
   const {
     lineCategories,
     addCustomer,
+    setCustomerMedia,
     language,
     currentUser,
     customers,
@@ -95,6 +152,11 @@ export default function AddEntryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [autofilled, setAutofilled] = useState(false);
+  const [customerPhoto, setCustomerPhoto] = useState<File | null>(null);
+  const [idProofFiles, setIdProofFiles] = useState<File[]>([]);
+  const [isUploading, setIsUploading] = useState(false);
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [idProofPreviews, setIdProofPreviews] = useState<string[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
 
   // Close dropdown on outside click
@@ -222,36 +284,7 @@ export default function AddEntryPage() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    setSubmitted(true);
-    const errs = validate(form);
-    setErrors(errs);
-    if (Object.keys(errs).length > 0) return;
-
-    if (isAgent) {
-      const lineName =
-        lineCategories.find((l) => l.id === form.lineCategoryId)?.name ?? "";
-      if (lockedLines.includes(lineName)) {
-        showAlert(t.lineLockedByAdmin, "error");
-        return;
-      }
-    }
-
-    addCustomer({
-      serialNumber: form.serialNumber,
-      name: form.name,
-      phone: form.phone,
-      address: form.address,
-      loanAmount: Number(form.loanAmount),
-      loanInterest: Number(form.loanInterest),
-      loanFee: Number(form.loanFee) || 0,
-      loanType: form.loanType,
-      lineCategoryId: form.lineCategoryId,
-      loanDate: form.loanDate,
-      isActive: true,
-    });
-    showAlert(t.customerAdded, "success");
+  const resetForm = () => {
     setForm({
       serialNumber: "",
       name: "",
@@ -268,6 +301,107 @@ export default function AddEntryPage() {
     setSubmitted(false);
     setAutofilled(false);
     setSearchQuery("");
+    setCustomerPhoto(null);
+    setIdProofFiles([]);
+    if (photoPreview) {
+      URL.revokeObjectURL(photoPreview);
+    }
+    setPhotoPreview(null);
+    for (const u of idProofPreviews) {
+      URL.revokeObjectURL(u);
+    }
+    setIdProofPreviews([]);
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    setSubmitted(true);
+    const errs = validate(form);
+    setErrors(errs);
+    if (Object.keys(errs).length > 0) return;
+
+    if (isAgent) {
+      const lineName =
+        lineCategories.find((l) => l.id === form.lineCategoryId)?.name ?? "";
+      if (lockedLines.includes(lineName)) {
+        showAlert(t.lineLockedByAdmin, "error");
+        return;
+      }
+    }
+
+    const newId = crypto.randomUUID();
+    addCustomer({
+      id: newId,
+      serialNumber: form.serialNumber,
+      name: form.name,
+      phone: form.phone,
+      address: form.address,
+      loanAmount: Number(form.loanAmount),
+      loanInterest: Number(form.loanInterest),
+      loanFee: Number(form.loanFee) || 0,
+      loanType: form.loanType,
+      lineCategoryId: form.lineCategoryId,
+      loanDate: form.loanDate,
+      isActive: true,
+    });
+
+    const hasMedia = customerPhoto !== null || idProofFiles.length > 0;
+    if (!hasMedia) {
+      showAlert(t.customerAdded, "success");
+      resetForm();
+      return;
+    }
+
+    // Upload media
+    setIsUploading(true);
+    (async () => {
+      try {
+        const config = await loadConfig();
+        const agent = new HttpAgent({ host: config.backend_host });
+        if (config.backend_host?.includes("localhost")) {
+          await agent.fetchRootKey().catch(() => {});
+        }
+        const storageClient = new StorageClient(
+          config.bucket_name,
+          config.storage_gateway_url,
+          config.backend_canister_id,
+          config.project_id,
+          agent,
+        );
+
+        const readFileAsBytes = (file: File): Promise<Uint8Array> =>
+          new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () =>
+              resolve(new Uint8Array(reader.result as ArrayBuffer));
+            reader.onerror = reject;
+            reader.readAsArrayBuffer(file);
+          });
+
+        let photoUrl = "";
+        if (customerPhoto) {
+          const bytes = await readFileAsBytes(customerPhoto);
+          const { hash } = await storageClient.putFile(bytes);
+          photoUrl = await storageClient.getDirectURL(hash);
+        }
+
+        const idProofUrls: string[] = [];
+        for (const file of idProofFiles) {
+          const bytes = await readFileAsBytes(file);
+          const { hash } = await storageClient.putFile(bytes);
+          const url = await storageClient.getDirectURL(hash);
+          idProofUrls.push(url);
+        }
+
+        setCustomerMedia(newId, { photoUrl, idProofUrls });
+      } catch {
+        // Best-effort — customer is already saved, media upload failed silently
+      } finally {
+        setIsUploading(false);
+        showAlert(t.customerAdded, "success");
+        resetForm();
+      }
+    })();
   };
 
   const field = (
@@ -562,12 +696,160 @@ export default function AddEntryPage() {
               </div>
             )}
 
+            {/* Customer Photo & ID Proof (Optional) */}
+            <div className="space-y-3 pt-2 border-t border-border/60">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                Customer Photo &amp; ID Proof{" "}
+                <span className="font-normal normal-case">(Optional)</span>
+              </p>
+
+              {/* Customer Photo */}
+              <div className="space-y-1">
+                <Label className="text-xs flex items-center gap-1">
+                  <Camera className="w-3 h-3" /> Customer Photo
+                </Label>
+                {photoPreview ? (
+                  <div className="relative inline-block">
+                    <img
+                      src={photoPreview}
+                      alt="Customer"
+                      className="w-20 h-20 object-cover rounded-lg border border-border"
+                    />
+                    <button
+                      type="button"
+                      className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center"
+                      onClick={() => {
+                        URL.revokeObjectURL(photoPreview);
+                        setPhotoPreview(null);
+                        setCustomerPhoto(null);
+                      }}
+                      aria-label="Remove photo"
+                      data-ocid="add_entry.delete_button"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </div>
+                ) : (
+                  <label
+                    className="flex items-center gap-2 cursor-pointer border border-dashed border-border rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-accent/50 transition-colors"
+                    data-ocid="add_entry.upload_button"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Tap to take / select photo
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      capture="environment"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const compressed = await compressImage(
+                            file,
+                            800,
+                            800,
+                            0.82,
+                          );
+                          setCustomerPhoto(compressed);
+                          setPhotoPreview(URL.createObjectURL(compressed));
+                        }
+                        e.target.value = "";
+                      }}
+                    />
+                  </label>
+                )}
+              </div>
+
+              {/* ID Proof Images */}
+              <div className="space-y-1">
+                <Label className="text-xs flex items-center gap-1">
+                  <FileImage className="w-3 h-3" /> ID Proof Images
+                </Label>
+                {idProofPreviews.length > 0 && (
+                  <div className="flex gap-2 flex-wrap">
+                    {idProofPreviews.map((preview, idx) => (
+                      <div key={preview} className="relative inline-block">
+                        <img
+                          src={preview}
+                          alt={`ID proof ${idx + 1}`}
+                          className="w-16 h-16 object-cover rounded-lg border border-border"
+                        />
+                        <button
+                          type="button"
+                          className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center"
+                          onClick={() => {
+                            URL.revokeObjectURL(preview);
+                            setIdProofPreviews((prev) =>
+                              prev.filter((_, i) => i !== idx),
+                            );
+                            setIdProofFiles((prev) =>
+                              prev.filter((_, i) => i !== idx),
+                            );
+                          }}
+                          aria-label={`Remove ID proof ${idx + 1}`}
+                          data-ocid={`add_entry.delete_button.${idx + 1}`}
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <label
+                  className="flex items-center gap-2 cursor-pointer border border-dashed border-border rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-accent/50 transition-colors"
+                  data-ocid="add_entry.dropzone"
+                >
+                  <FileImage className="w-4 h-4" />
+                  Add ID proof image(s)
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png"
+                    capture="environment"
+                    multiple
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      if (files.length) {
+                        const compressed = await Promise.all(
+                          files.map((f) => compressImage(f, 1200, 1200, 0.85)),
+                        );
+                        setIdProofFiles((prev) => [...prev, ...compressed]);
+                        setIdProofPreviews((prev) => [
+                          ...prev,
+                          ...compressed.map((f) => URL.createObjectURL(f)),
+                        ]);
+                      }
+                      e.target.value = "";
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {isUploading && (
+              <div
+                className="flex items-center gap-2 text-xs text-muted-foreground bg-muted/50 rounded-lg px-3 py-2"
+                data-ocid="add_entry.loading_state"
+              >
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Uploading photos...
+              </div>
+            )}
+
             <Button
               type="submit"
               className="w-full"
+              disabled={isUploading}
               data-ocid="add_entry.submit_button"
             >
-              {t.save} Customer
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>{t.save} Customer</>
+              )}
             </Button>
           </form>
         </CardContent>

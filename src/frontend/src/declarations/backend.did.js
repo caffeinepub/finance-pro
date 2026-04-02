@@ -60,7 +60,12 @@ export const SavedReport = IDL.Record({
   'savedAt' : IDL.Text,
   'savedBy' : IDL.Text,
 });
+export const CustomerMedia = IDL.Record({
+  'photoUrl' : IDL.Text,
+  'idProofUrls' : IDL.Vec(IDL.Text),
+});
 const CustomerTimestampEntry = IDL.Tuple(IDL.Text, IDL.Text);
+const CustomerMediaEntry = IDL.Tuple(IDL.Text, CustomerMedia);
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -71,6 +76,7 @@ export const idlService = IDL.Service({
   'deleteCustomer' : IDL.Func([IDL.Text], [], []),
   'deleteEMIPayment' : IDL.Func([IDL.Text], [], []),
   'deleteSavedReport' : IDL.Func([IDL.Text], [], []),
+  'deleteCustomerMedia' : IDL.Func([IDL.Text], [], []),
   'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
   'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
   'getEMIPayments' : IDL.Func([], [IDL.Vec(EMIPayment)], ['query']),
@@ -78,6 +84,7 @@ export const idlService = IDL.Service({
   'getLineCategories' : IDL.Func([], [IDL.Vec(LineCategory)], ['query']),
   'getSavedReports' : IDL.Func([], [IDL.Vec(SavedReport)], ['query']),
   'getCustomerTimestamps' : IDL.Func([], [IDL.Vec(CustomerTimestampEntry)], ['query']),
+  'getCustomerMedia' : IDL.Func([], [IDL.Vec(CustomerMediaEntry)], ['query']),
   'getLockedLines' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
   'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
   'setCustomers' : IDL.Func([IDL.Vec(Customer)], [], []),
@@ -87,6 +94,7 @@ export const idlService = IDL.Service({
   'setSavedReports' : IDL.Func([IDL.Vec(SavedReport)], [], []),
   'setCustomerTimestamps' : IDL.Func([IDL.Vec(CustomerTimestampEntry)], [], []),
   'setLockedLines' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
+  'setCustomerMedia' : IDL.Func([IDL.Text, CustomerMedia], [], []),
 });
 
 export const idlInitArgs = [];
@@ -144,7 +152,12 @@ export const idlFactory = ({ IDL }) => {
     'savedAt' : IDL.Text,
     'savedBy' : IDL.Text,
   });
+  const CustomerMedia = IDL.Record({
+    'photoUrl' : IDL.Text,
+    'idProofUrls' : IDL.Vec(IDL.Text),
+  });
   const CustomerTimestampEntry = IDL.Tuple(IDL.Text, IDL.Text);
+  const CustomerMediaEntry = IDL.Tuple(IDL.Text, CustomerMedia);
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -155,6 +168,7 @@ export const idlFactory = ({ IDL }) => {
     'deleteCustomer' : IDL.Func([IDL.Text], [], []),
     'deleteEMIPayment' : IDL.Func([IDL.Text], [], []),
     'deleteSavedReport' : IDL.Func([IDL.Text], [], []),
+    'deleteCustomerMedia' : IDL.Func([IDL.Text], [], []),
     'getCallerUserRole' : IDL.Func([], [UserRole], ['query']),
     'getCustomers' : IDL.Func([], [IDL.Vec(Customer)], ['query']),
     'getEMIPayments' : IDL.Func([], [IDL.Vec(EMIPayment)], ['query']),
@@ -162,6 +176,7 @@ export const idlFactory = ({ IDL }) => {
     'getLineCategories' : IDL.Func([], [IDL.Vec(LineCategory)], ['query']),
     'getSavedReports' : IDL.Func([], [IDL.Vec(SavedReport)], ['query']),
     'getCustomerTimestamps' : IDL.Func([], [IDL.Vec(CustomerTimestampEntry)], ['query']),
+    'getCustomerMedia' : IDL.Func([], [IDL.Vec(CustomerMediaEntry)], ['query']),
     'getLockedLines' : IDL.Func([], [IDL.Vec(IDL.Text)], ['query']),
     'isCallerAdmin' : IDL.Func([], [IDL.Bool], ['query']),
     'setCustomers' : IDL.Func([IDL.Vec(Customer)], [], []),
@@ -171,6 +186,7 @@ export const idlFactory = ({ IDL }) => {
     'setSavedReports' : IDL.Func([IDL.Vec(SavedReport)], [], []),
     'setCustomerTimestamps' : IDL.Func([IDL.Vec(CustomerTimestampEntry)], [], []),
     'setLockedLines' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
+    'setCustomerMedia' : IDL.Func([IDL.Text, CustomerMedia], [], []),
   });
 };
 

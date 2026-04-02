@@ -39,6 +39,7 @@ export default function RecordsPage() {
     language,
     currentUser,
     deleteCustomer,
+    customerMedia,
   } = useAppStore();
   const t = labels[language];
   const [search, setSearch] = useState("");
@@ -270,6 +271,68 @@ export default function RecordsPage() {
                             )}
                           </div>
                         </div>
+
+                        {/* Customer Photo & ID Proof */}
+                        {(() => {
+                          const media = customerMedia[c.id];
+                          if (
+                            !media ||
+                            (!media.photoUrl &&
+                              (!media.idProofUrls ||
+                                media.idProofUrls.length === 0))
+                          )
+                            return null;
+                          return (
+                            <div className="space-y-2 pt-2 border-t">
+                              <p className="text-xs font-semibold text-muted-foreground">
+                                Photo &amp; ID Proof
+                              </p>
+                              {media.photoUrl && (
+                                <div className="space-y-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    Customer Photo
+                                  </p>
+                                  <a
+                                    href={media.photoUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <img
+                                      src={media.photoUrl}
+                                      alt="Customer portrait"
+                                      className="w-20 h-20 object-cover rounded-lg border border-border hover:opacity-80 transition-opacity cursor-pointer"
+                                    />
+                                  </a>
+                                </div>
+                              )}
+                              {media.idProofUrls &&
+                                media.idProofUrls.length > 0 && (
+                                  <div className="space-y-1">
+                                    <p className="text-xs text-muted-foreground">
+                                      ID Proof
+                                    </p>
+                                    <div className="flex gap-2 overflow-x-auto pb-1">
+                                      {media.idProofUrls.map((url, idx) => (
+                                        <a
+                                          key={url}
+                                          href={url}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="flex-shrink-0"
+                                        >
+                                          <img
+                                            src={url}
+                                            alt={`ID proof ${idx + 1}`}
+                                            className="w-16 h-16 object-cover rounded-lg border border-border hover:opacity-80 transition-opacity cursor-pointer"
+                                          />
+                                        </a>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                            </div>
+                          );
+                        })()}
 
                         {isAdmin && (
                           <div className="pt-1 border-t">

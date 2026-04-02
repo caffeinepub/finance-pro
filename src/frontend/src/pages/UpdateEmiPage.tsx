@@ -36,20 +36,49 @@ export default function UpdateEmiPage() {
   const assignedLines = currentUser?.assignedLines ?? [];
 
   const [search, setSearch] = useState("");
+  const [selectedLine, setSelectedLine] = useState("");
   const [selected, setSelected] = useState<Customer | null>(null);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState(today);
   const [editId, setEditId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
 
+  const accessibleLines = isAgent
+    ? lineCategories.filter((l) => assignedLines.includes(l.name))
+    : lineCategories;
+
   const accessibleCustomers = isAgent
-    ? customers.filter((c) => assignedLines.includes(c.lineCategoryId))
+    ? customers.filter((c) =>
+        assignedLines.includes(
+          lineCategories.find((l) => l.id === c.lineCategoryId)?.name ?? "",
+        ),
+      )
     : customers;
 
+  const hasPaidToday = (customerId: string) =>
+    emiPayments.some(
+      (e) => e.customerId === customerId && e.paymentDate === today,
+    );
+
+  // Customers for the selected line, sorted unpaid first
+  const lineCustomers = selectedLine
+    ? accessibleCustomers
+        .filter((c) => c.lineCategoryId === selectedLine)
+        .sort((a, b) => {
+          const aPaid = hasPaidToday(a.id) ? 1 : 0;
+          const bPaid = hasPaidToday(b.id) ? 1 : 0;
+          return aPaid - bPaid;
+        })
+    : [];
+
+  // Search filtered list (across accessible customers when no line, within line when selected)
+  const baseForSearch = selectedLine ? lineCustomers : accessibleCustomers;
   const filtered =
     search.trim().length < 1
-      ? []
-      : accessibleCustomers.filter(
+      ? selectedLine
+        ? lineCustomers
+        : []
+      : baseForSearch.filter(
           (c) =>
             c.name.toLowerCase().includes(search.toLowerCase()) ||
             c.serialNumber.toLowerCase().includes(search.toLowerCase()) ||
@@ -123,10 +152,41 @@ export default function UpdateEmiPage() {
     showAlert(t.emiUpdated, "success");
   };
 
+  const showList =
+    !selected &&
+    (filtered.length > 0 ||
+      (selectedLine && search.trim().length === 0 && lineCustomers.length > 0));
+
+  const displayList = search.trim().length > 0 ? filtered : lineCustomers;
+
   return (
     <div data-ocid="update_emi.page" className="space-y-4">
       {AlertComponent}
       <h2 className="text-lg font-bold">{t.updateEmi}</h2>
+
+      {/* Line category selector */}
+      <div className="space-y-1">
+        <Label className="text-xs">{t.lineCategory ?? "Line Category"}</Label>
+        <select
+          value={selectedLine}
+          onChange={(e) => {
+            setSelectedLine(e.target.value);
+            setSearch("");
+            setSelected(null);
+          }}
+          className="w-full border border-input rounded-md px-3 py-2 text-sm bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+          data-ocid="update_emi.select"
+        >
+          <option value="">{t.selectLine ?? "Select Line"}</option>
+          {accessibleLines.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Search box */}
       <div className="space-y-1">
         <Label className="text-xs">{t.searchCustomer}</Label>
         <Input
@@ -140,36 +200,106 @@ export default function UpdateEmiPage() {
         />
       </div>
 
-      {filtered.length > 0 && !selected && (
+      {/* Customer list */}
+      {showList && (
         <Card data-ocid="update_emi.customer_list">
           <CardContent className="p-0 divide-y divide-border">
-            {filtered.map((c, i) => {
-              const line = lineCategories.find(
-                (l) => l.id === c.lineCategoryId,
-              );
-              return (
-                <button
-                  type="button"
-                  key={c.id}
-                  className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors"
-                  onClick={() => setSelected(c)}
-                  data-ocid={`update_emi.customer_item.${i + 1}`}
-                >
-                  <p className="font-medium text-sm">
-                    {c.name}{" "}
-                    <span className="text-muted-foreground">
-                      #{c.serialNumber}
-                    </span>
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {line?.name} &bull; {c.address}
-                  </p>
-                </button>
-              );
-            })}
+            {displayList.length === 0 ? (
+              <p className="text-center text-muted-foreground text-sm py-4">
+                No customers found
+              </p>
+            ) : (
+              displayList.map((c, i) => {
+                const line = lineCategories.find(
+                  (l) => l.id === c.lineCategoryId,
+                );
+                const paid = hasPaidToday(c.id);
+                return (
+                  <button
+                    type="button"
+                    key={c.id}
+                    className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors"
+                    onClick={() => setSelected(c)}
+                    data-ocid={`update_emi.customer_item.${i + 1}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">
+                          {c.name}{" "}
+                          <span className="text-muted-foreground">
+                            #{c.serialNumber}
+                          </span>
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {line?.name} &bull; {c.address}
+                        </p>
+                      </div>
+                      <span
+                        className={`ml-3 shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                          paid
+                            ? "bg-green-100 text-green-700 border-green-200"
+                            : "bg-red-100 text-red-700 border-red-200"
+                        }`}
+                      >
+                        {paid ? "Paid" : "Unpaid"}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })
+            )}
           </CardContent>
         </Card>
       )}
+
+      {/* Search results when no line is selected */}
+      {!selected &&
+        !selectedLine &&
+        search.trim().length > 0 &&
+        filtered.length > 0 && (
+          <Card data-ocid="update_emi.search_results">
+            <CardContent className="p-0 divide-y divide-border">
+              {filtered.map((c, i) => {
+                const line = lineCategories.find(
+                  (l) => l.id === c.lineCategoryId,
+                );
+                const paid = hasPaidToday(c.id);
+                return (
+                  <button
+                    type="button"
+                    key={c.id}
+                    className="w-full text-left px-4 py-3 hover:bg-muted/50 transition-colors"
+                    onClick={() => setSelected(c)}
+                    data-ocid={`update_emi.search_item.${i + 1}`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-sm">
+                          {c.name}{" "}
+                          <span className="text-muted-foreground">
+                            #{c.serialNumber}
+                          </span>
+                        </p>
+                        <p className="text-xs text-muted-foreground truncate">
+                          {line?.name} &bull; {c.address}
+                        </p>
+                      </div>
+                      <span
+                        className={`ml-3 shrink-0 inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold border ${
+                          paid
+                            ? "bg-green-100 text-green-700 border-green-200"
+                            : "bg-red-100 text-red-700 border-red-200"
+                        }`}
+                      >
+                        {paid ? "Paid" : "Unpaid"}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </CardContent>
+          </Card>
+        )}
 
       {selected && (
         <>
