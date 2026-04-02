@@ -13,6 +13,7 @@ import { HttpAgent } from "@icp-sdk/core/agent";
 import {
   Camera,
   FileImage,
+  FolderOpen,
   Loader2,
   Search,
   Trash2,
@@ -158,6 +159,12 @@ export default function AddEntryPage() {
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
   const [idProofPreviews, setIdProofPreviews] = useState<string[]>([]);
   const searchRef = useRef<HTMLDivElement>(null);
+
+  // Hidden file input refs for camera and gallery
+  const photoCameraRef = useRef<HTMLInputElement>(null);
+  const photoGalleryRef = useRef<HTMLInputElement>(null);
+  const idCameraRef = useRef<HTMLInputElement>(null);
+  const idGalleryRef = useRef<HTMLInputElement>(null);
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -402,6 +409,26 @@ export default function AddEntryPage() {
         resetForm();
       }
     })();
+  };
+
+  // Handle photo file selection (camera or gallery)
+  const handlePhotoFile = async (file: File) => {
+    const compressed = await compressImage(file, 800, 800, 0.82);
+    setCustomerPhoto(compressed);
+    setPhotoPreview(URL.createObjectURL(compressed));
+  };
+
+  // Handle ID proof file selection (camera or gallery, multiple)
+  const handleIdProofFiles = async (files: File[]) => {
+    if (!files.length) return;
+    const compressed = await Promise.all(
+      files.map((f) => compressImage(f, 1200, 1200, 0.85)),
+    );
+    setIdProofFiles((prev) => [...prev, ...compressed]);
+    setIdProofPreviews((prev) => [
+      ...prev,
+      ...compressed.map((f) => URL.createObjectURL(f)),
+    ]);
   };
 
   const field = (
@@ -730,33 +757,53 @@ export default function AddEntryPage() {
                     </button>
                   </div>
                 ) : (
-                  <label
-                    className="flex items-center gap-2 cursor-pointer border border-dashed border-border rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-accent/50 transition-colors"
-                    data-ocid="add_entry.upload_button"
-                  >
-                    <Camera className="w-4 h-4" />
-                    Tap to take / select photo
+                  <div className="flex gap-2">
+                    {/* Camera capture */}
+                    <button
+                      type="button"
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-border rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-accent/50 active:bg-accent transition-colors"
+                      onClick={() => photoCameraRef.current?.click()}
+                      data-ocid="add_entry.photo_camera_button"
+                    >
+                      <Camera className="w-4 h-4" />
+                      Camera
+                    </button>
+                    {/* Gallery picker */}
+                    <button
+                      type="button"
+                      className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-border rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-accent/50 active:bg-accent transition-colors"
+                      onClick={() => photoGalleryRef.current?.click()}
+                      data-ocid="add_entry.upload_button"
+                    >
+                      <FolderOpen className="w-4 h-4" />
+                      Gallery
+                    </button>
+                    {/* Hidden camera input */}
                     <input
+                      ref={photoCameraRef}
                       type="file"
                       accept="image/jpeg,image/png"
                       capture="environment"
                       className="hidden"
                       onChange={async (e) => {
                         const file = e.target.files?.[0];
-                        if (file) {
-                          const compressed = await compressImage(
-                            file,
-                            800,
-                            800,
-                            0.82,
-                          );
-                          setCustomerPhoto(compressed);
-                          setPhotoPreview(URL.createObjectURL(compressed));
-                        }
+                        if (file) await handlePhotoFile(file);
                         e.target.value = "";
                       }}
                     />
-                  </label>
+                    {/* Hidden gallery input */}
+                    <input
+                      ref={photoGalleryRef}
+                      type="file"
+                      accept="image/jpeg,image/png"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (file) await handlePhotoFile(file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
                 )}
               </div>
 
@@ -767,10 +814,10 @@ export default function AddEntryPage() {
                 </Label>
                 {idProofPreviews.length > 0 && (
                   <div className="flex gap-2 flex-wrap">
-                    {idProofPreviews.map((preview, idx) => (
-                      <div key={preview} className="relative inline-block">
+                    {idProofPreviews.map((prev, idx) => (
+                      <div key={prev} className="relative inline-block">
                         <img
-                          src={preview}
+                          src={prev}
                           alt={`ID proof ${idx + 1}`}
                           className="w-16 h-16 object-cover rounded-lg border border-border"
                         />
@@ -778,12 +825,12 @@ export default function AddEntryPage() {
                           type="button"
                           className="absolute -top-1.5 -right-1.5 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center"
                           onClick={() => {
-                            URL.revokeObjectURL(preview);
-                            setIdProofPreviews((prev) =>
-                              prev.filter((_, i) => i !== idx),
+                            URL.revokeObjectURL(prev);
+                            setIdProofPreviews((ps) =>
+                              ps.filter((_, i) => i !== idx),
                             );
-                            setIdProofFiles((prev) =>
-                              prev.filter((_, i) => i !== idx),
+                            setIdProofFiles((ps) =>
+                              ps.filter((_, i) => i !== idx),
                             );
                           }}
                           aria-label={`Remove ID proof ${idx + 1}`}
@@ -795,34 +842,54 @@ export default function AddEntryPage() {
                     ))}
                   </div>
                 )}
-                <label
-                  className="flex items-center gap-2 cursor-pointer border border-dashed border-border rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-accent/50 transition-colors"
-                  data-ocid="add_entry.dropzone"
-                >
-                  <FileImage className="w-4 h-4" />
-                  Add ID proof image(s)
+                <div className="flex gap-2">
+                  {/* Camera capture for ID proof */}
+                  <button
+                    type="button"
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-border rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-accent/50 active:bg-accent transition-colors"
+                    onClick={() => idCameraRef.current?.click()}
+                    data-ocid="add_entry.id_camera_button"
+                  >
+                    <Camera className="w-4 h-4" />
+                    Camera
+                  </button>
+                  {/* Gallery picker for ID proof */}
+                  <button
+                    type="button"
+                    className="flex-1 flex items-center justify-center gap-1.5 border border-dashed border-border rounded-lg px-3 py-2 text-xs text-muted-foreground hover:bg-accent/50 active:bg-accent transition-colors"
+                    onClick={() => idGalleryRef.current?.click()}
+                    data-ocid="add_entry.dropzone"
+                  >
+                    <FolderOpen className="w-4 h-4" />
+                    Gallery
+                  </button>
+                  {/* Hidden camera input */}
                   <input
+                    ref={idCameraRef}
                     type="file"
                     accept="image/jpeg,image/png"
                     capture="environment"
+                    className="hidden"
+                    onChange={async (e) => {
+                      const files = Array.from(e.target.files ?? []);
+                      await handleIdProofFiles(files);
+                      e.target.value = "";
+                    }}
+                  />
+                  {/* Hidden gallery input - multiple */}
+                  <input
+                    ref={idGalleryRef}
+                    type="file"
+                    accept="image/jpeg,image/png"
                     multiple
                     className="hidden"
                     onChange={async (e) => {
                       const files = Array.from(e.target.files ?? []);
-                      if (files.length) {
-                        const compressed = await Promise.all(
-                          files.map((f) => compressImage(f, 1200, 1200, 0.85)),
-                        );
-                        setIdProofFiles((prev) => [...prev, ...compressed]);
-                        setIdProofPreviews((prev) => [
-                          ...prev,
-                          ...compressed.map((f) => URL.createObjectURL(f)),
-                        ]);
-                      }
+                      await handleIdProofFiles(files);
                       e.target.value = "";
                     }}
                   />
-                </label>
+                </div>
               </div>
             </div>
 
