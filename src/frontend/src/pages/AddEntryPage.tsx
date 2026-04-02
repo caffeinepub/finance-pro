@@ -9,25 +9,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { HttpAgent } from "@icp-sdk/core/agent";
 import {
   Camera,
   FileImage,
   FolderOpen,
   Loader2,
   Search,
-  Trash2,
   UserCheck,
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useAlert } from "../components/AlertPopup";
-import { loadConfig } from "../config";
 import { useAppStore } from "../store/appStore";
 import { loanRepayAmount } from "../store/calculations";
 import { labels } from "../store/labels";
 import type { LoanType } from "../store/types";
-import { StorageClient } from "../utils/StorageClient";
 import { formatINR } from "../utils/formatINR";
 
 // Compress an image file using canvas before upload/preview to avoid OOM crashes
@@ -359,50 +355,32 @@ export default function AddEntryPage() {
       return;
     }
 
-    // Upload media
+    // Convert images to base64 data URLs and store directly
     setIsUploading(true);
     (async () => {
       try {
-        const config = await loadConfig();
-        const agent = new HttpAgent({ host: config.backend_host });
-        if (config.backend_host?.includes("localhost")) {
-          await agent.fetchRootKey().catch(() => {});
-        }
-        const storageClient = new StorageClient(
-          config.bucket_name,
-          config.storage_gateway_url,
-          config.backend_canister_id,
-          config.project_id,
-          agent,
-        );
-
-        const readFileAsBytes = (file: File): Promise<Uint8Array> =>
+        const fileToDataUrl = (file: File): Promise<string> =>
           new Promise((resolve, reject) => {
             const reader = new FileReader();
-            reader.onload = () =>
-              resolve(new Uint8Array(reader.result as ArrayBuffer));
+            reader.onload = () => resolve(reader.result as string);
             reader.onerror = reject;
-            reader.readAsArrayBuffer(file);
+            reader.readAsDataURL(file);
           });
 
         let photoUrl = "";
         if (customerPhoto) {
-          const bytes = await readFileAsBytes(customerPhoto);
-          const { hash } = await storageClient.putFile(bytes);
-          photoUrl = await storageClient.getDirectURL(hash);
+          photoUrl = await fileToDataUrl(customerPhoto);
         }
 
         const idProofUrls: string[] = [];
         for (const file of idProofFiles) {
-          const bytes = await readFileAsBytes(file);
-          const { hash } = await storageClient.putFile(bytes);
-          const url = await storageClient.getDirectURL(hash);
+          const url = await fileToDataUrl(file);
           idProofUrls.push(url);
         }
 
         setCustomerMedia(newId, { photoUrl, idProofUrls });
       } catch {
-        // Best-effort — customer is already saved, media upload failed silently
+        // best-effort, customer already saved
       } finally {
         setIsUploading(false);
         showAlert(t.customerAdded, "success");
@@ -899,7 +877,7 @@ export default function AddEntryPage() {
                 data-ocid="add_entry.loading_state"
               >
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                Uploading photos...
+                Saving photos...
               </div>
             )}
 
