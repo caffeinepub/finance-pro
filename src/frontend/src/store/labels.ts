@@ -120,6 +120,16 @@ export const labels = {
     startDate: "Start Date",
     endDate: "End Date",
     download: "Download",
+    welcomeAgent: "Welcome, {name}!",
+    agentQuickGuide: "Here's a quick guide to get you started.",
+    guideAddEntry:
+      'To add new customer loans, click the "Add Entry" button below.',
+    guideUpdateEmi:
+      'To update EMI payments, click the "Update EMI" button below.',
+    guideRecords:
+      'To view existing customer loan details, click the "Records" button below.',
+    guideReports:
+      'To generate today\'s report, click the "Reports" button below.',
   },
   ta: {
     appName:
@@ -303,6 +313,14 @@ export const labels = {
     endDate: "\u0bae\u0bc1\u0b9f\u0bbf\u0bb5\u0bc1 \u0ba4\u0bc7\u0ba4\u0bbf",
     download:
       "\u0baa\u0ba4\u0bbf\u0bb5\u0bbf\u0bb1\u0b95\u0bcd\u0b95\u0bae\u0bcd",
+    welcomeAgent: "வரவேற்கிறோம், {name}!",
+    agentQuickGuide: "தொடங்குவதற்கான ஒரு சிறு வழிகாட்டி.",
+    guideAddEntry: 'புதிய கடன் சேர்க்க கீழே உள்ள "புதிய பதிவு" பொத்தானை அழுத்துங்கள்.',
+    guideUpdateEmi:
+      'EMI செலுத்துதல் புதுப்பிக்க கீழே உள்ள "EMI புதுப்பி" பொத்தானை அழுத்துங்கள்.',
+    guideRecords:
+      'வாடிக்கையாளர் கடன் விவரங்கள் பார்க்க கீழே உள்ள "பதிவுகள்" பொத்தானை அழுத்துங்கள்.',
+    guideReports: 'இன்றைய அறிக்கை உருவாக்க கீழே உள்ள "திட்டம்" பொத்தானை அழுத்துங்கள்.',
   },
 };
 

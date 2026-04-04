@@ -43,31 +43,35 @@ type Activity = {
   timestamp: string;
 };
 
-function AgentWelcomeScreen({ agentName }: { agentName: string }) {
+function AgentWelcomeScreen({
+  agentName,
+  language,
+}: { agentName: string; language: "en" | "ta" }) {
+  const t = labels[language];
   const guides = [
     {
       icon: PlusCircle,
       color: "text-blue-500",
       bg: "bg-blue-50",
-      text: 'To add new customer loans, click the "Add Entry" button below.',
+      text: t.guideAddEntry,
     },
     {
       icon: RefreshCw,
       color: "text-emerald-500",
       bg: "bg-emerald-50",
-      text: 'To update EMI payments, click the "Update EMI" button below.',
+      text: t.guideUpdateEmi,
     },
     {
       icon: FileText,
       color: "text-violet-500",
       bg: "bg-violet-50",
-      text: 'To view existing customer loan details, click the "Records" button below.',
+      text: t.guideRecords,
     },
     {
       icon: BarChart3,
       color: "text-amber-500",
       bg: "bg-amber-50",
-      text: 'To generate today\'s report, click the "Reports" button below.',
+      text: t.guideReports,
     },
   ];
 
@@ -80,10 +84,10 @@ function AgentWelcomeScreen({ agentName }: { agentName: string }) {
           </span>
         </div>
         <h2 className="text-xl font-bold text-foreground">
-          Welcome, {agentName}!
+          {t.welcomeAgent.replace("{name}", agentName)}
         </h2>
         <p className="text-sm text-muted-foreground mt-1">
-          Here's a quick guide to get you started.
+          {t.agentQuickGuide}
         </p>
       </div>
       <div className="space-y-3">
@@ -336,7 +340,12 @@ export default function DashboardPage() {
     : true;
 
   if (isAgent && !dashboardEnabled) {
-    return <AgentWelcomeScreen agentName={currentUser?.username ?? "Agent"} />;
+    return (
+      <AgentWelcomeScreen
+        agentName={currentUser?.username ?? "Agent"}
+        language={language}
+      />
+    );
   }
 
   return <DashboardContent />;
