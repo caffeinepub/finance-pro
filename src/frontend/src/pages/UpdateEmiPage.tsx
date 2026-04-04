@@ -43,16 +43,13 @@ export default function UpdateEmiPage() {
   const [editId, setEditId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
 
+  // assignedLines stores line category IDs (set in Settings > Agent management)
   const accessibleLines = isAgent
-    ? lineCategories.filter((l) => assignedLines.includes(l.name))
+    ? lineCategories.filter((l) => assignedLines.includes(l.id))
     : lineCategories;
 
   const accessibleCustomers = isAgent
-    ? customers.filter((c) =>
-        assignedLines.includes(
-          lineCategories.find((l) => l.id === c.lineCategoryId)?.name ?? "",
-        ),
-      )
+    ? customers.filter((c) => assignedLines.includes(c.lineCategoryId))
     : customers;
 
   const hasPaidToday = (customerId: string) =>
