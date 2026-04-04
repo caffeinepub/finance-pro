@@ -31,6 +31,11 @@ export const EMIPayment = IDL.Record({
   'customerId' : IDL.Text,
   'amount' : IDL.Float64,
 });
+export const EMIPaymentMeta = IDL.Record({
+  'paymentMethod' : IDL.Text,
+  'cashAmount' : IDL.Float64,
+  'transferAmount' : IDL.Float64,
+});
 export const UserRole = IDL.Variant({
   'admin' : IDL.Null,
   'user' : IDL.Null,
@@ -66,6 +71,7 @@ export const CustomerMedia = IDL.Record({
 });
 const CustomerTimestampEntry = IDL.Tuple(IDL.Text, IDL.Text);
 const CustomerMediaEntry = IDL.Tuple(IDL.Text, CustomerMedia);
+const EMIPaymentMetaEntry = IDL.Tuple(IDL.Text, EMIPaymentMeta);
 
 export const idlService = IDL.Service({
   '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -95,6 +101,10 @@ export const idlService = IDL.Service({
   'setCustomerTimestamps' : IDL.Func([IDL.Vec(CustomerTimestampEntry)], [], []),
   'setLockedLines' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
   'setCustomerMedia' : IDL.Func([IDL.Text, CustomerMedia], [], []),
+  'setEMIPaymentMeta' : IDL.Func([IDL.Text, EMIPaymentMeta], [], []),
+  'setEMIPaymentMetaBulk' : IDL.Func([IDL.Vec(EMIPaymentMetaEntry)], [], []),
+  'getEMIPaymentMeta' : IDL.Func([], [IDL.Vec(EMIPaymentMetaEntry)], ['query']),
+  'deleteEMIPaymentMeta' : IDL.Func([IDL.Text], [], []),
 });
 
 export const idlInitArgs = [];
@@ -122,6 +132,11 @@ export const idlFactory = ({ IDL }) => {
     'paymentDate' : IDL.Text,
     'customerId' : IDL.Text,
     'amount' : IDL.Float64,
+  });
+  const EMIPaymentMeta = IDL.Record({
+    'paymentMethod' : IDL.Text,
+    'cashAmount' : IDL.Float64,
+    'transferAmount' : IDL.Float64,
   });
   const UserRole = IDL.Variant({
     'admin' : IDL.Null,
@@ -158,6 +173,7 @@ export const idlFactory = ({ IDL }) => {
   });
   const CustomerTimestampEntry = IDL.Tuple(IDL.Text, IDL.Text);
   const CustomerMediaEntry = IDL.Tuple(IDL.Text, CustomerMedia);
+  const EMIPaymentMetaEntry = IDL.Tuple(IDL.Text, EMIPaymentMeta);
   
   return IDL.Service({
     '_initializeAccessControlWithSecret' : IDL.Func([IDL.Text], [], []),
@@ -187,6 +203,10 @@ export const idlFactory = ({ IDL }) => {
     'setCustomerTimestamps' : IDL.Func([IDL.Vec(CustomerTimestampEntry)], [], []),
     'setLockedLines' : IDL.Func([IDL.Vec(IDL.Text)], [], []),
     'setCustomerMedia' : IDL.Func([IDL.Text, CustomerMedia], [], []),
+    'setEMIPaymentMeta' : IDL.Func([IDL.Text, EMIPaymentMeta], [], []),
+    'setEMIPaymentMetaBulk' : IDL.Func([IDL.Vec(EMIPaymentMetaEntry)], [], []),
+    'getEMIPaymentMeta' : IDL.Func([], [IDL.Vec(EMIPaymentMetaEntry)], ['query']),
+    'deleteEMIPaymentMeta' : IDL.Func([IDL.Text], [], []),
   });
 };
 

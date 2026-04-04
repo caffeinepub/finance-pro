@@ -19,6 +19,11 @@ export interface EMIPayment {
     customerId: string;
     amount: number;
 }
+export interface EMIPaymentMeta {
+    paymentMethod: string;
+    cashAmount: number;
+    transferAmount: number;
+}
 export interface Customer {
     id: string;
     loanFee: number;
@@ -90,4 +95,8 @@ export interface backendInterface {
     setCustomerTimestamps(entries: Array<[string, string]>): Promise<void>;
     getLockedLines(): Promise<Array<string>>;
     setLockedLines(lines: Array<string>): Promise<void>;
+    setEMIPaymentMeta(emiId: string, meta: EMIPaymentMeta): Promise<undefined>;
+    setEMIPaymentMetaBulk(entries: Array<[string, EMIPaymentMeta]>): Promise<undefined>;
+    getEMIPaymentMeta(): Promise<Array<[string, EMIPaymentMeta]>>;
+    deleteEMIPaymentMeta(emiId: string): Promise<undefined>;
 }

@@ -27,6 +27,7 @@ import {
   paidAmount,
 } from "../store/calculations";
 import { labels } from "../store/labels";
+import type { EMIPayment } from "../store/types";
 import { formatDate } from "../utils/dateFormat";
 import { exportCustomers } from "../utils/excel";
 import { formatINR } from "../utils/formatINR";
@@ -76,6 +77,14 @@ export default function RecordsPage() {
     emiPayments
       .filter((e) => e.customerId === id)
       .sort((a, b) => b.paymentDate.localeCompare(a.paymentDate));
+
+  const getPaymentMethodLabel = (e: EMIPayment): string => {
+    if (e.paymentMethod === "split") {
+      return `${t.split}: ${formatINR(e.cashAmount ?? 0)} ${t.cashCollection} + ${formatINR(e.transferAmount ?? 0)} ${t.accountCollection}`;
+    }
+    if (e.paymentMethod === "account") return t.accountTransfer;
+    return t.cash;
+  };
 
   const handleDelete = (id: string, name: string) => {
     if (confirmDeleteId === id) {
@@ -251,7 +260,7 @@ export default function RecordsPage() {
                         </div>
                         <div>
                           <p className="font-semibold mb-2">{t.emiHistory}</p>
-                          <div className="space-y-1 max-h-36 overflow-y-auto">
+                          <div className="space-y-1.5 max-h-40 overflow-y-auto">
                             {customerEmis(c.id).length === 0 ? (
                               <p className="text-muted-foreground text-xs">
                                 No payments recorded
@@ -260,10 +269,15 @@ export default function RecordsPage() {
                               customerEmis(c.id).map((e) => (
                                 <div
                                   key={e.id}
-                                  className="flex justify-between text-xs bg-muted/50 rounded px-2 py-1"
+                                  className="flex justify-between items-start text-xs bg-muted/50 rounded px-2 py-1.5"
                                 >
-                                  <span>{formatDate(e.paymentDate)}</span>
-                                  <span className="font-medium">
+                                  <div>
+                                    <p>{formatDate(e.paymentDate)}</p>
+                                    <p className="text-muted-foreground/70 mt-0.5">
+                                      {getPaymentMethodLabel(e)}
+                                    </p>
+                                  </div>
+                                  <span className="font-medium ml-2 shrink-0">
                                     {formatINR(e.amount)}
                                   </span>
                                 </div>

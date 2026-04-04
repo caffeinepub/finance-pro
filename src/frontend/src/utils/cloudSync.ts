@@ -7,8 +7,15 @@ import type {
   backendInterface,
 } from "../backend";
 import { createActorWithConfig } from "../config";
-import type { SavedReport, SavedReportField } from "../store/types";
-import type { Customer as StoreCustomer } from "../store/types";
+import type {
+  EMIPaymentMeta,
+  SavedReport,
+  SavedReportField,
+} from "../store/types";
+import type {
+  Customer as StoreCustomer,
+  EMIPayment as StoreEMIPayment,
+} from "../store/types";
 
 let actorCache: backendInterface | null = null;
 
@@ -50,10 +57,13 @@ export async function deleteCustomerFromCloud(id: string): Promise<void> {
   }
 }
 
-export async function syncEMIToCloud(payment: EMIPayment): Promise<void> {
+export async function syncEMIToCloud(payment: StoreEMIPayment): Promise<void> {
   try {
     const actor = await getActor();
-    await actor.addOrUpdateEMIPayment(payment);
+    // Strip payment method fields — those are stored in emiPaymentMeta separately
+    const { paymentMethod, cashAmount, transferAmount, ...basePayment } =
+      payment;
+    await actor.addOrUpdateEMIPayment(basePayment as EMIPayment);
   } catch {
     // best-effort; silently swallow
   }
@@ -63,6 +73,7 @@ export async function deleteEMIFromCloud(id: string): Promise<void> {
   try {
     const actor = await getActor();
     await actor.deleteEMIPayment(id);
+    await actor.deleteEMIPaymentMeta(id);
   } catch {
     // best-effort; silently swallow
   }
@@ -111,7 +122,7 @@ export async function loadAgentAccounts(): Promise<AgentAccount[]> {
 
 export async function loadFromCloud(): Promise<{
   customers: StoreCustomer[];
-  emiPayments: EMIPayment[];
+  emiPayments: StoreEMIPayment[];
 }> {
   try {
     const actor = await getActor();
@@ -220,6 +231,42 @@ export async function loadSavedReports(): Promise<SavedReport[]> {
   }
 }
 
+// EMI Payment Meta — stored in a separate stable map on the backend
+export async function syncEMIMetaToCloud(
+  emiId: string,
+  meta: EMIPaymentMeta,
+): Promise<void> {
+  try {
+    const actor = await getActor();
+    await actor.setEMIPaymentMeta(emiId, meta);
+  } catch {
+    // best-effort
+  }
+}
+
+export async function loadEMIPaymentMeta(): Promise<
+  Array<[string, EMIPaymentMeta]>
+> {
+  try {
+    const actor = await getActor();
+    const result = await actor.getEMIPaymentMeta();
+    return result as Array<[string, EMIPaymentMeta]>;
+  } catch {
+    return [];
+  }
+}
+
+export async function syncEMIMetaBulkToCloud(
+  entries: Array<[string, EMIPaymentMeta]>,
+): Promise<void> {
+  try {
+    const actor = await getActor();
+    await actor.setEMIPaymentMetaBulk(entries);
+  } catch {
+    // best-effort
+  }
+}
+
 /**
  * Upload ALL local data to cloud in one shot using bulk-replace methods.
  * Each data type is sent as a single canister call — same reliable pattern as
@@ -229,11 +276,12 @@ export async function loadSavedReports(): Promise<SavedReport[]> {
  */
 export async function uploadAllLocalDataToCloud(params: {
   customers: StoreCustomer[];
-  emiPayments: EMIPayment[];
+  emiPayments: StoreEMIPayment[];
   lineCategories: LineCategory[];
   agents: AgentAccount[];
   savedReports: SavedReport[];
   lockedLines?: string[];
+  emiPaymentMeta?: Array<[string, EMIPaymentMeta]>;
 }): Promise<boolean> {
   // Always reset cache to force fresh actor — avoids stale/broken connection
   actorCache = null;
@@ -252,14 +300,27 @@ export async function uploadAllLocalDataToCloud(params: {
         .filter((c) => c.addedAt)
         .map((c) => [c.id, c.addedAt!]);
 
+      // Strip payment method fields from EMI payments before sending to cloud
+      const cloudEMIPayments: EMIPayment[] = params.emiPayments.map((e) => {
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const { paymentMethod, cashAmount, transferAmount, ...basePayment } = e;
+        return basePayment as EMIPayment;
+      });
+
       await actor.setCustomers(cloudCustomers);
-      await actor.setEMIPayments(params.emiPayments);
+      await actor.setEMIPayments(cloudEMIPayments);
       await actor.setLineCategories(params.lineCategories);
       await actor.setAgentAccounts(params.agents);
       await actor.setSavedReports(params.savedReports.map(savedReportToCloud));
       await actor.setCustomerTimestamps(timestampEntries);
       if (params.lockedLines !== undefined) {
         await actor.setLockedLines(params.lockedLines);
+      }
+      if (
+        params.emiPaymentMeta !== undefined &&
+        params.emiPaymentMeta.length > 0
+      ) {
+        await actor.setEMIPaymentMetaBulk(params.emiPaymentMeta);
       }
       return true;
     } catch {

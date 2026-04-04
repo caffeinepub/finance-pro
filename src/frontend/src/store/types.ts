@@ -39,6 +39,15 @@ export interface EMIPayment {
   paymentDate: string;
   recordedBy: string;
   createdAt: string;
+  paymentMethod?: "cash" | "account" | "split"; // defaults to "cash" if absent
+  cashAmount?: number; // only used when paymentMethod = "split"
+  transferAmount?: number; // only used when paymentMethod = "split"
+}
+
+export interface EMIPaymentMeta {
+  paymentMethod: string;
+  cashAmount: number;
+  transferAmount: number;
 }
 
 export interface ReportCustomField {

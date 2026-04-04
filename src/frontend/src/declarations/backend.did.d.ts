@@ -33,6 +33,11 @@ export interface EMIPayment {
   'customerId' : string,
   'amount' : number,
 }
+export interface EMIPaymentMeta {
+  'paymentMethod' : string,
+  'cashAmount' : number,
+  'transferAmount' : number,
+}
 export interface LineCategory { 'id' : string, 'name' : string }
 export interface AgentAccount {
   'id' : string,
@@ -92,6 +97,10 @@ export interface _SERVICE {
   'setCustomerTimestamps' : ActorMethod<[Array<[string, string]>], undefined>,
   'setLockedLines' : ActorMethod<[Array<string>], undefined>,
   'setCustomerMedia' : ActorMethod<[string, CustomerMedia], undefined>,
+  'setEMIPaymentMeta' : ActorMethod<[string, EMIPaymentMeta], undefined>,
+  'setEMIPaymentMetaBulk' : ActorMethod<[Array<[string, EMIPaymentMeta]>], undefined>,
+  'getEMIPaymentMeta' : ActorMethod<[], Array<[string, EMIPaymentMeta]>>,
+  'deleteEMIPaymentMeta' : ActorMethod<[string], undefined>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

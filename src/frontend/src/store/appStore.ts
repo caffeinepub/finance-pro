@@ -5,12 +5,14 @@ import {
   deleteEMIFromCloud,
   deleteSavedReportFromCloud,
   loadAgentAccounts,
+  loadEMIPaymentMeta,
   loadFromCloud,
   loadLineCategories,
   loadLockedLines,
   loadSavedReports,
   syncAllAgentsToCloud,
   syncCustomerToCloud,
+  syncEMIMetaToCloud,
   syncEMIToCloud,
   syncLineCategoriesToCloud,
   syncLockedLinesToCloud,
@@ -21,6 +23,7 @@ import type {
   AppState,
   Customer,
   EMIPayment,
+  EMIPaymentMeta,
   LineCategory,
   ReportCustomField,
   SavedReport,
@@ -278,7 +281,16 @@ export const useAppStore = create<AppStore>()(
           createdAt: new Date().toISOString(),
         };
         set((s) => ({ emiPayments: [...s.emiPayments, newEMI] }));
-        fireAndForget(() => syncEMIToCloud(newEMI), get().setSyncStatus);
+        fireAndForget(async () => {
+          await syncEMIToCloud(newEMI);
+          if (newEMI.paymentMethod) {
+            await syncEMIMetaToCloud(newEMI.id, {
+              paymentMethod: newEMI.paymentMethod,
+              cashAmount: newEMI.cashAmount ?? 0,
+              transferAmount: newEMI.transferAmount ?? 0,
+            });
+          }
+        }, get().setSyncStatus);
       },
       updateEMIPayment: (id, amount) => {
         set((s) => ({
@@ -373,6 +385,20 @@ export const useAppStore = create<AppStore>()(
         // 2. Immediately push all restored data to cloud (bulk-replace)
         const state = get();
         const allUsers = buildCloudUsersPayload(state.users);
+
+        // Build EMI payment meta from restored EMI payments
+        const emiPaymentMeta: Array<[string, EMIPaymentMeta]> =
+          state.emiPayments
+            .filter((e) => e.paymentMethod)
+            .map((e) => [
+              e.id,
+              {
+                paymentMethod: e.paymentMethod!,
+                cashAmount: e.cashAmount ?? 0,
+                transferAmount: e.transferAmount ?? 0,
+              },
+            ]);
+
         const success = await uploadAllLocalDataToCloud({
           customers: state.customers,
           emiPayments: state.emiPayments,
@@ -380,6 +406,7 @@ export const useAppStore = create<AppStore>()(
           agents: allUsers,
           savedReports: state.savedReports,
           lockedLines: state.lockedLines,
+          emiPaymentMeta,
         });
 
         get().setSyncStatus(success ? "synced" : "error");
@@ -434,13 +461,20 @@ export const useAppStore = create<AppStore>()(
             remoteEntries,
             remoteSavedReports,
             remoteLockedLines,
+            remoteEMIMeta,
           ] = await Promise.all([
             loadFromCloud(),
             loadLineCategories(),
             loadAgentAccounts(),
             loadSavedReports(),
             loadLockedLines(),
+            loadEMIPaymentMeta(),
           ]);
+
+          // Build a map from emiId -> meta for quick lookup
+          const metaMap = new Map(
+            remoteEMIMeta.map(([id, meta]) => [id, meta]),
+          );
 
           // Deduplicate EMIs: keep only first entry per (customerId, paymentDate)
           let hadDuplicates = false;
@@ -452,7 +486,16 @@ export const useAppStore = create<AppStore>()(
               const key = `${e.customerId}|${e.paymentDate}`;
               if (!seenKeys.has(key)) {
                 seenKeys.add(key);
-                result.push(e);
+                // Merge payment meta into the EMI object
+                const emiWithMeta: EMIPayment = { ...e };
+                const meta = metaMap.get(e.id);
+                if (meta) {
+                  emiWithMeta.paymentMethod =
+                    meta.paymentMethod as EMIPayment["paymentMethod"];
+                  emiWithMeta.cashAmount = meta.cashAmount;
+                  emiWithMeta.transferAmount = meta.transferAmount;
+                }
+                result.push(emiWithMeta);
               }
             }
             hadDuplicates = rawEMIs.length !== result.length;
@@ -534,6 +577,17 @@ export const useAppStore = create<AppStore>()(
           if (hadDuplicates) {
             const state = get();
             const allUsers = buildCloudUsersPayload(state.users);
+            const emiPaymentMeta: Array<[string, EMIPaymentMeta]> =
+              state.emiPayments
+                .filter((e) => e.paymentMethod)
+                .map((e) => [
+                  e.id,
+                  {
+                    paymentMethod: e.paymentMethod!,
+                    cashAmount: e.cashAmount ?? 0,
+                    transferAmount: e.transferAmount ?? 0,
+                  },
+                ]);
             fireAndForget(async () => {
               await uploadAllLocalDataToCloud({
                 customers: state.customers,
@@ -542,6 +596,7 @@ export const useAppStore = create<AppStore>()(
                 agents: allUsers,
                 savedReports: state.savedReports,
                 lockedLines: state.lockedLines,
+                emiPaymentMeta,
               });
             }, setSyncStatus);
           }
@@ -556,6 +611,20 @@ export const useAppStore = create<AppStore>()(
         setSyncStatus("syncing");
         const state = get();
         const allUsers = buildCloudUsersPayload(state.users);
+
+        // Build EMI payment meta from current state
+        const emiPaymentMeta: Array<[string, EMIPaymentMeta]> =
+          state.emiPayments
+            .filter((e) => e.paymentMethod)
+            .map((e) => [
+              e.id,
+              {
+                paymentMethod: e.paymentMethod!,
+                cashAmount: e.cashAmount ?? 0,
+                transferAmount: e.transferAmount ?? 0,
+              },
+            ]);
+
         const success = await uploadAllLocalDataToCloud({
           customers: state.customers,
           emiPayments: state.emiPayments,
@@ -563,6 +632,7 @@ export const useAppStore = create<AppStore>()(
           agents: allUsers,
           savedReports: state.savedReports,
           lockedLines: state.lockedLines,
+          emiPaymentMeta,
         });
         setSyncStatus(success ? "synced" : "error");
         return success;

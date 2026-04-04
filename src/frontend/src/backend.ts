@@ -170,6 +170,10 @@ export interface backendInterface {
     setCustomerTimestamps(entries: Array<[string, string]>): Promise<void>;
     getLockedLines(): Promise<Array<string>>;
     setLockedLines(lines: Array<string>): Promise<void>;
+    setEMIPaymentMeta(emiId: string, meta: { paymentMethod: string; cashAmount: number; transferAmount: number }): Promise<void>;
+    setEMIPaymentMetaBulk(entries: Array<[string, { paymentMethod: string; cashAmount: number; transferAmount: number }]>): Promise<void>;
+    getEMIPaymentMeta(): Promise<Array<[string, { paymentMethod: string; cashAmount: number; transferAmount: number }]>>;
+    deleteEMIPaymentMeta(emiId: string): Promise<void>;
 }
 import type { UserRole as _UserRole, AgentAccount as _AgentAccount } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -507,6 +511,62 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.setCustomerTimestamps(arg0);
+            return result;
+        }
+    }
+    async setEMIPaymentMeta(arg0: string, arg1: { paymentMethod: string; cashAmount: number; transferAmount: number }): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setEMIPaymentMeta(arg0, arg1);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setEMIPaymentMeta(arg0, arg1);
+            return result;
+        }
+    }
+    async setEMIPaymentMetaBulk(arg0: Array<[string, { paymentMethod: string; cashAmount: number; transferAmount: number }]>): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setEMIPaymentMetaBulk(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setEMIPaymentMetaBulk(arg0);
+            return result;
+        }
+    }
+    async getEMIPaymentMeta(): Promise<Array<[string, { paymentMethod: string; cashAmount: number; transferAmount: number }]>> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getEMIPaymentMeta();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getEMIPaymentMeta();
+            return result;
+        }
+    }
+    async deleteEMIPaymentMeta(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.deleteEMIPaymentMeta(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.deleteEMIPaymentMeta(arg0);
             return result;
         }
     }

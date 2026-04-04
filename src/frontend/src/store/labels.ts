@@ -130,6 +130,16 @@ export const labels = {
       'To view existing customer loan details, click the "Records" button below.',
     guideReports:
       'To generate today\'s report, click the "Reports" button below.',
+    paymentMethod: "Payment Method",
+    cash: "Cash",
+    accountTransfer: "Bank Transfer",
+    split: "Split",
+    cashAmount: "Cash Amount",
+    transferAmount: "Bank Transfer Amount",
+    splitTotal: "Total",
+    collectionBreakdown: "Collection Breakdown",
+    cashCollection: "Cash",
+    accountCollection: "Bank Transfer",
   },
   ta: {
     appName:
@@ -321,6 +331,16 @@ export const labels = {
     guideRecords:
       'வாடிக்கையாளர் கடன் விவரங்கள் பார்க்க கீழே உள்ள "பதிவுகள்" பொத்தானை அழுத்துங்கள்.',
     guideReports: 'இன்றைய அறிக்கை உருவாக்க கீழே உள்ள "திட்டம்" பொத்தானை அழுத்துங்கள்.',
+    paymentMethod: "கட்டண முறை",
+    cash: "ரொக்கம்",
+    accountTransfer: "வங்கி பரிவர்த்தனை",
+    split: "பிரித்து",
+    cashAmount: "ரொக்க தொகை",
+    transferAmount: "வங்கி பரிவர்த்தனை தொகை",
+    splitTotal: "மொத்தம்",
+    collectionBreakdown: "வசூல் விவரம்",
+    cashCollection: "ரொக்கம்",
+    accountCollection: "வங்கி பரிவர்த்தனை",
   },
 };
 

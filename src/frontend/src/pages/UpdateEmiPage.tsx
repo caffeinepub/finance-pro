@@ -17,6 +17,8 @@ import type { Customer, EMIPayment } from "../store/types";
 import { formatDate } from "../utils/dateFormat";
 import { formatINR } from "../utils/formatINR";
 
+type PaymentMethod = "cash" | "account" | "split";
+
 export default function UpdateEmiPage() {
   const {
     customers,
@@ -36,9 +38,19 @@ export default function UpdateEmiPage() {
   const assignedLines = currentUser?.assignedLines ?? [];
 
   const [search, setSearch] = useState("");
-  const [selectedLine, setSelectedLine] = useState("");
+  const EMI_LINE_KEY = `emi_selected_line_${today}`;
+  const [selectedLine, setSelectedLine] = useState<string>(() => {
+    try {
+      return localStorage.getItem(EMI_LINE_KEY) ?? "";
+    } catch {
+      return "";
+    }
+  });
   const [selected, setSelected] = useState<Customer | null>(null);
   const [amount, setAmount] = useState("");
+  const [cashAmt, setCashAmt] = useState("");
+  const [transferAmt, setTransferAmt] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
   const [date, setDate] = useState(today);
   const [editId, setEditId] = useState<string | null>(null);
   const [editAmount, setEditAmount] = useState("");
@@ -87,18 +99,41 @@ export default function UpdateEmiPage() {
       .filter((e) => e.customerId === customerId)
       .sort((a, b) => b.paymentDate.localeCompare(a.paymentDate));
 
+  const getPaymentMethodLabel = (e: EMIPayment): string => {
+    if (e.paymentMethod === "split") {
+      return `Split: ${formatINR(e.cashAmount ?? 0)} ${t.cash} + ${formatINR(e.transferAmount ?? 0)} ${t.accountTransfer}`;
+    }
+    if (e.paymentMethod === "account") return t.accountTransfer;
+    return t.cash;
+  };
+
   const handleSave = () => {
     if (!selected) return;
     if (outstandingAmount(selected, emiPayments) <= 0) {
       showAlert(t.loanAlreadyClosed, "error");
       return;
     }
-    if (!amount || Number(amount) <= 0) {
-      showAlert(t.enterValidAmount, "error");
-      return;
-    }
+
     const outstanding = outstandingAmount(selected, emiPayments);
-    if (Number(amount) > outstanding) {
+    let totalAmount = 0;
+
+    if (paymentMethod === "split") {
+      const cash = Number(cashAmt);
+      const transfer = Number(transferAmt);
+      if (!cashAmt || cash <= 0 || !transferAmt || transfer <= 0) {
+        showAlert(t.enterValidAmount, "error");
+        return;
+      }
+      totalAmount = cash + transfer;
+    } else {
+      if (!amount || Number(amount) <= 0) {
+        showAlert(t.enterValidAmount, "error");
+        return;
+      }
+      totalAmount = Number(amount);
+    }
+
+    if (totalAmount > outstanding) {
       const msg = t.amountExceedsOutstanding.replace(
         "{max}",
         formatINR(outstanding).replace("₹", ""),
@@ -130,12 +165,19 @@ export default function UpdateEmiPage() {
     }
     addEMIPayment({
       customerId: selected.id,
-      amount: Number(amount),
+      amount: totalAmount,
       paymentDate: date,
       recordedBy: currentUser?.username ?? "admin",
+      paymentMethod,
+      cashAmount: paymentMethod === "split" ? Number(cashAmt) : undefined,
+      transferAmount:
+        paymentMethod === "split" ? Number(transferAmt) : undefined,
     });
     showAlert(t.emiSaved, "success");
     setAmount("");
+    setCashAmt("");
+    setTransferAmt("");
+    setPaymentMethod("cash");
   };
 
   const handleEdit = (e: EMIPayment) => {
@@ -156,6 +198,17 @@ export default function UpdateEmiPage() {
 
   const displayList = search.trim().length > 0 ? filtered : lineCustomers;
 
+  const splitTotal =
+    paymentMethod === "split"
+      ? (Number(cashAmt) || 0) + (Number(transferAmt) || 0)
+      : 0;
+
+  const paymentMethods: { key: PaymentMethod; label: string }[] = [
+    { key: "cash", label: t.cash },
+    { key: "account", label: t.accountTransfer },
+    { key: "split", label: t.split },
+  ];
+
   return (
     <div data-ocid="update_emi.page" className="space-y-4">
       {AlertComponent}
@@ -168,6 +221,9 @@ export default function UpdateEmiPage() {
           value={selectedLine}
           onChange={(e) => {
             setSelectedLine(e.target.value);
+            try {
+              localStorage.setItem(EMI_LINE_KEY, e.target.value);
+            } catch {}
             setSearch("");
             setSelected(null);
           }}
@@ -347,28 +403,110 @@ export default function UpdateEmiPage() {
               <CardTitle className="text-sm">Record EMI Payment</CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <Label className="text-xs">{t.amount}</Label>
-                  <Input
-                    type="number"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                    data-ocid="update_emi.amount_input"
-                  />
+              {/* Payment Method Selector */}
+              <div className="space-y-1.5">
+                <Label className="text-xs">{t.paymentMethod}</Label>
+                <div
+                  className="flex gap-1.5"
+                  data-ocid="update_emi.payment_method_toggle"
+                >
+                  {paymentMethods.map((pm) => (
+                    <button
+                      key={pm.key}
+                      type="button"
+                      onClick={() => {
+                        setPaymentMethod(pm.key);
+                        setAmount("");
+                        setCashAmt("");
+                        setTransferAmt("");
+                      }}
+                      className={`flex-1 py-1.5 px-2 rounded-md text-xs font-medium border transition-all ${
+                        paymentMethod === pm.key
+                          ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                          : "bg-background text-foreground border-border hover:bg-muted"
+                      }`}
+                      data-ocid={`update_emi.payment_method_${pm.key}`}
+                    >
+                      {pm.label}
+                    </button>
+                  ))}
                 </div>
+              </div>
+
+              {/* Amount fields */}
+              {paymentMethod === "split" ? (
+                <div className="space-y-2">
+                  <div className="grid grid-cols-2 gap-2">
+                    <div className="space-y-1">
+                      <Label className="text-xs">{t.cashAmount}</Label>
+                      <Input
+                        type="number"
+                        value={cashAmt}
+                        onChange={(e) => setCashAmt(e.target.value)}
+                        placeholder="0"
+                        data-ocid="update_emi.cash_amount_input"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">{t.transferAmount}</Label>
+                      <Input
+                        type="number"
+                        value={transferAmt}
+                        onChange={(e) => setTransferAmt(e.target.value)}
+                        placeholder="0"
+                        data-ocid="update_emi.transfer_amount_input"
+                      />
+                    </div>
+                  </div>
+                  {splitTotal > 0 && (
+                    <div className="flex justify-between items-center px-2 py-1.5 bg-muted/60 rounded-md">
+                      <span className="text-xs text-muted-foreground">
+                        {t.splitTotal}
+                      </span>
+                      <span className="text-xs font-semibold">
+                        {formatINR(splitTotal)}
+                      </span>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="space-y-1">
+                    <Label className="text-xs">{t.amount}</Label>
+                    <Input
+                      type="number"
+                      value={amount}
+                      onChange={(e) => setAmount(e.target.value)}
+                      data-ocid="update_emi.amount_input"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label className="text-xs">{t.date}</Label>
+                    <Input
+                      type="date"
+                      value={date}
+                      onChange={(e) => setDate(e.target.value)}
+                      readOnly={true}
+                      disabled={true}
+                      data-ocid="update_emi.date_input"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {paymentMethod === "split" && (
                 <div className="space-y-1">
                   <Label className="text-xs">{t.date}</Label>
                   <Input
                     type="date"
                     value={date}
-                    onChange={(e) => setDate(e.target.value)}
                     readOnly={true}
                     disabled={true}
                     data-ocid="update_emi.date_input"
                   />
                 </div>
-              </div>
+              )}
+
               <Button
                 className="w-full"
                 onClick={handleSave}
@@ -400,6 +538,9 @@ export default function UpdateEmiPage() {
                         <p className="text-sm">{formatDate(e.paymentDate)}</p>
                         <p className="text-xs text-muted-foreground">
                           {e.recordedBy}
+                        </p>
+                        <p className="text-xs text-muted-foreground/70 mt-0.5">
+                          {getPaymentMethodLabel(e)}
                         </p>
                       </div>
                       {editId === e.id ? (

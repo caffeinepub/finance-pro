@@ -22,6 +22,9 @@ actor {
     // to avoid changing this type and causing data wipes on upgrade.
   };
 
+  // IMPORTANT: Do NOT add new required fields to this type — it will break stable
+  // variable deserialization on upgrade. Payment method data is stored separately
+  // in emiPaymentMetaMap to avoid changing this type.
   type EMIPayment = {
     id : Text;
     customerId : Text;
@@ -29,6 +32,15 @@ actor {
     paymentDate : Text;
     createdAt : Text;
     recordedBy : Text;
+  };
+
+  // Payment method metadata stored separately to avoid EMIPayment type changes.
+  // paymentMethod: "cash" | "account" | "split"
+  // cashAmount and transferAmount only set when paymentMethod = "split"
+  type EMIPaymentMeta = {
+    paymentMethod : Text;
+    cashAmount : Float;
+    transferAmount : Float;
   };
 
   type LineCategory = {
@@ -86,6 +98,8 @@ actor {
   stable var stableLockedLines : [Text] = [];
   // Customer media (photo + ID proof URLs) stored separately.
   stable var stableCustomerMedia : [(Text, CustomerMedia)] = [];
+  // EMI payment method metadata stored separately to avoid EMIPayment type changes.
+  stable var stableEMIPaymentMeta : [(Text, EMIPaymentMeta)] = [];
 
   // In-memory working maps
   var customersMap : Map.Map<Text, Customer> = Map.empty();
@@ -96,6 +110,7 @@ actor {
   var customerTimestampsMap : Map.Map<Text, Text> = Map.empty();
   var lockedLinesSet : [Text] = [];
   var customerMediaMap : Map.Map<Text, CustomerMedia> = Map.empty();
+  var emiPaymentMetaMap : Map.Map<Text, EMIPaymentMeta> = Map.empty();
 
   // Reconstruct maps from stable arrays on first init
   do {
@@ -107,6 +122,7 @@ actor {
     for ((k, v) in stableCustomerTimestamps.vals()) { customerTimestampsMap.add(k, v) };
     lockedLinesSet := stableLockedLines;
     for ((k, v) in stableCustomerMedia.vals()) { customerMediaMap.add(k, v) };
+    for ((k, v) in stableEMIPaymentMeta.vals()) { emiPaymentMetaMap.add(k, v) };
   };
 
   system func preupgrade() {
@@ -118,6 +134,7 @@ actor {
     stableCustomerTimestamps := customerTimestampsMap.entries().toArray();
     stableLockedLines := lockedLinesSet;
     stableCustomerMedia := customerMediaMap.entries().toArray();
+    stableEMIPaymentMeta := emiPaymentMetaMap.entries().toArray();
   };
 
   system func postupgrade() {
@@ -128,6 +145,7 @@ actor {
     savedReportsMap := Map.empty();
     customerTimestampsMap := Map.empty();
     customerMediaMap := Map.empty();
+    emiPaymentMetaMap := Map.empty();
     for ((k, v) in stableCustomers.vals()) { customersMap.add(k, v) };
     for ((k, v) in stableEMIPayments.vals()) { emiPaymentsMap.add(k, v) };
     for ((k, v) in stableLineCategories.vals()) { lineCategoriesMap.add(k, v) };
@@ -136,6 +154,7 @@ actor {
     for ((k, v) in stableCustomerTimestamps.vals()) { customerTimestampsMap.add(k, v) };
     lockedLinesSet := stableLockedLines;
     for ((k, v) in stableCustomerMedia.vals()) { customerMediaMap.add(k, v) };
+    for ((k, v) in stableEMIPaymentMeta.vals()) { emiPaymentMetaMap.add(k, v) };
     // NOTE: stable arrays are intentionally NOT cleared here.
   };
 
@@ -168,6 +187,7 @@ actor {
 
   public shared func deleteEMIPayment(id : Text) : async () {
     emiPaymentsMap.remove(id);
+    emiPaymentMetaMap.remove(id);
   };
 
   public query func getEMIPayments() : async [EMIPayment] {
@@ -180,6 +200,26 @@ actor {
     for (payment in payments.vals()) {
       emiPaymentsMap.add(payment.id, payment);
     };
+  };
+
+  // EMI Payment Meta Management — store payment method per EMI
+  public shared func setEMIPaymentMeta(emiId : Text, meta : EMIPaymentMeta) : async () {
+    emiPaymentMetaMap.add(emiId, meta);
+  };
+
+  public shared func setEMIPaymentMetaBulk(entries : [(Text, EMIPaymentMeta)]) : async () {
+    emiPaymentMetaMap := Map.empty();
+    for ((k, v) in entries.vals()) {
+      emiPaymentMetaMap.add(k, v);
+    };
+  };
+
+  public query func getEMIPaymentMeta() : async [(Text, EMIPaymentMeta)] {
+    emiPaymentMetaMap.entries().toArray();
+  };
+
+  public shared func deleteEMIPaymentMeta(emiId : Text) : async () {
+    emiPaymentMetaMap.remove(emiId);
   };
 
   // Customer Timestamps — bulk replace

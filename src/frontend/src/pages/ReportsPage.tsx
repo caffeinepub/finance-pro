@@ -89,6 +89,28 @@ export default function ReportsPage() {
       .reduce((s, e) => s + e.amount, 0);
   }, [filteredEmis, reportDate]);
 
+  const cashBreakdown = useMemo(() => {
+    const todayEmis = filteredEmis.filter((e) => e.paymentDate === reportDate);
+    const fromCash = todayEmis
+      .filter((e) => !e.paymentMethod || e.paymentMethod === "cash")
+      .reduce((s, e) => s + e.amount, 0);
+    const fromSplitCash = todayEmis
+      .filter((e) => e.paymentMethod === "split")
+      .reduce((s, e) => s + (e.cashAmount ?? 0), 0);
+    return fromCash + fromSplitCash;
+  }, [filteredEmis, reportDate]);
+
+  const accountBreakdown = useMemo(() => {
+    const todayEmis = filteredEmis.filter((e) => e.paymentDate === reportDate);
+    const fromAccount = todayEmis
+      .filter((e) => e.paymentMethod === "account")
+      .reduce((s, e) => s + e.amount, 0);
+    const fromSplitAccount = todayEmis
+      .filter((e) => e.paymentMethod === "split")
+      .reduce((s, e) => s + (e.transferAmount ?? 0), 0);
+    return fromAccount + fromSplitAccount;
+  }, [filteredEmis, reportDate]);
+
   const loanFee = useMemo(() => {
     return filteredCustomers
       .filter((c) => c.createdAt === reportDate)
@@ -264,6 +286,19 @@ export default function ReportsPage() {
                     readOnly
                     data-ocid="reports.collection_input"
                   />
+                  {(cashBreakdown > 0 || accountBreakdown > 0) && (
+                    <div className="flex items-center gap-2 mt-1 px-1">
+                      <span className="text-[10px] text-muted-foreground">
+                        {t.cashCollection}: {formatINR(cashBreakdown)}
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        &bull;
+                      </span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {t.accountCollection}: {formatINR(accountBreakdown)}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="space-y-1">
                   <Label className="text-[10px] text-muted-foreground">
