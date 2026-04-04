@@ -13,7 +13,6 @@ interface Props {
   onChange: (page: string) => void;
   t: LabelSet;
   isAgent?: boolean;
-  agentDashboardEnabled?: boolean;
 }
 
 const allNavItems = [
@@ -36,23 +35,11 @@ const allNavItems = [
   { id: "reports", icon: BarChart3, labelKey: "reports" },
 ];
 
-export default function BottomNav({
-  current,
-  onChange,
-  t,
-  isAgent,
-  agentDashboardEnabled,
-}: Props) {
-  const navItems = allNavItems.filter((item) => {
-    if (item.id === "dashboard" && isAgent && !agentDashboardEnabled)
-      return false;
-    return true;
-  });
-
+export default function BottomNav({ current, onChange, t }: Props) {
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border shadow-lg">
       <div className="max-w-md mx-auto flex">
-        {navItems.map((item) => {
+        {allNavItems.map((item) => {
           const Icon = item.icon;
           const active = current === item.id;
           return (

@@ -21,18 +21,12 @@ export default function Layout({ settingsOpen, setSettingsOpen }: Props) {
   const language = useAppStore((s) => s.language);
   const currentUser = useAppStore((s) => s.currentUser);
   const isAgent = currentUser?.role === "agent";
-  const agentDashboardEnabled = isAgent
-    ? (currentUser?.dashboardEnabled ?? false)
-    : false;
   const t = labels[language];
 
-  const defaultPage: Page =
-    isAgent && !agentDashboardEnabled ? "add-entry" : "dashboard";
-  const [page, setPage] = useState<Page>(defaultPage);
+  // Always start on the dashboard — DashboardPage handles disabled agents internally
+  const [page, setPage] = useState<Page>("dashboard");
 
   const handlePageChange = (p: string) => {
-    // Block dashboard access for agents without dashboard permission
-    if (isAgent && p === "dashboard" && !agentDashboardEnabled) return;
     setPage(p as Page);
   };
 
@@ -65,7 +59,6 @@ export default function Layout({ settingsOpen, setSettingsOpen }: Props) {
           onChange={handlePageChange}
           t={t}
           isAgent={isAgent}
-          agentDashboardEnabled={agentDashboardEnabled}
         />
       )}
     </div>

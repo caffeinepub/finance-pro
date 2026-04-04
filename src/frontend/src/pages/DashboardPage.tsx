@@ -9,8 +9,12 @@ import {
 import {
   ArrowDownRight,
   ArrowUpRight,
+  BarChart3,
   CreditCard,
+  FileText,
   IndianRupee,
+  PlusCircle,
+  RefreshCw,
   TrendingUp,
   Users,
   Wallet,
@@ -39,7 +43,75 @@ type Activity = {
   timestamp: string;
 };
 
-export default function DashboardPage() {
+function AgentWelcomeScreen({ agentName }: { agentName: string }) {
+  const guides = [
+    {
+      icon: PlusCircle,
+      color: "text-blue-500",
+      bg: "bg-blue-50",
+      text: 'To add new customer loans, click the "Add Entry" button below.',
+    },
+    {
+      icon: RefreshCw,
+      color: "text-emerald-500",
+      bg: "bg-emerald-50",
+      text: 'To update EMI payments, click the "Update EMI" button below.',
+    },
+    {
+      icon: FileText,
+      color: "text-violet-500",
+      bg: "bg-violet-50",
+      text: 'To view existing customer loan details, click the "Records" button below.',
+    },
+    {
+      icon: BarChart3,
+      color: "text-amber-500",
+      bg: "bg-amber-50",
+      text: 'To generate today\'s report, click the "Reports" button below.',
+    },
+  ];
+
+  return (
+    <div className="space-y-5" data-ocid="dashboard.agent_welcome">
+      <div className="text-center pt-4 pb-2">
+        <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
+          <span className="text-2xl font-bold text-primary">
+            {agentName.charAt(0).toUpperCase()}
+          </span>
+        </div>
+        <h2 className="text-xl font-bold text-foreground">
+          Welcome, {agentName}!
+        </h2>
+        <p className="text-sm text-muted-foreground mt-1">
+          Here's a quick guide to get you started.
+        </p>
+      </div>
+      <div className="space-y-3">
+        {guides.map((g) => {
+          const Icon = g.icon;
+          return (
+            <Card key={g.text.slice(0, 20)} className="shadow-sm">
+              <CardContent className="p-4">
+                <div className="flex items-start gap-3">
+                  <div
+                    className={`flex-shrink-0 w-9 h-9 rounded-full ${g.bg} flex items-center justify-center mt-0.5`}
+                  >
+                    <Icon className={`h-4 w-4 ${g.color}`} />
+                  </div>
+                  <p className="text-sm text-foreground leading-relaxed">
+                    {g.text}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function DashboardContent() {
   const { customers, emiPayments, lineCategories, language, currentUser } =
     useAppStore();
   const t = labels[language];
@@ -64,12 +136,10 @@ export default function DashboardPage() {
 
   const filteredCustomerIds = new Set(filteredCustomers.map((c) => c.id));
 
-  // Total Customers = only customers with Active loan status (outstanding > 0)
   const totalCustomers = filteredCustomers.filter(
     (c) => outstandingAmount(c, emiPayments) > 0,
   ).length;
 
-  // Active Customers = customers where (current date - loan date) <= 120 days AND outstanding > 0
   const activeCustomers = filteredCustomers.filter((c) => {
     const loanDateMs = new Date(c.createdAt).getTime();
     const diffDays = (todayMs - loanDateMs) / (1000 * 60 * 60 * 24);
@@ -88,19 +158,16 @@ export default function DashboardPage() {
     )
     .reduce((s, e) => s + e.amount, 0);
 
-  // Outstanding Loan = sum of outstanding amounts of ALL customers in selected line
   const outstandingLoan = filteredCustomers.reduce(
     (s, c) => s + outstandingAmount(c, emiPayments),
     0,
   );
 
-  // Active Loans = sum of outstanding amounts of Active Customers (loan date <= 120 days AND outstanding > 0)
   const activeLoansAmount = activeCustomers.reduce(
     (s, c) => s + outstandingAmount(c, emiPayments),
     0,
   );
 
-  // --- Recent Activity (last 20, combined loans + EMIs) ---
   const loanActivities: Activity[] = filteredCustomers.map((c) => ({
     id: `loan_${c.id}`,
     type: "new_loan",
@@ -169,7 +236,6 @@ export default function DashboardPage() {
         <h2 className="text-lg font-bold text-foreground">{t.dashboard}</h2>
       </div>
 
-      {/* Line Category Filter */}
       <div data-ocid="dashboard.line_filter">
         <Select value={selectedLineId} onValueChange={setSelectedLineId}>
           <SelectTrigger
@@ -205,7 +271,6 @@ export default function DashboardPage() {
         ))}
       </div>
 
-      {/* Recent Activity */}
       <Card data-ocid="dashboard.list">
         <CardContent className="p-0">
           <div className="px-4 pt-4 pb-2">
@@ -257,4 +322,22 @@ export default function DashboardPage() {
       </Card>
     </div>
   );
+}
+
+export default function DashboardPage() {
+  const { language, currentUser } = useAppStore();
+  const t = labels[language];
+  // t is used for potential future i18n in this shell; keep the reference.
+  void t;
+
+  const isAgent = currentUser?.role === "agent";
+  const dashboardEnabled = isAgent
+    ? (currentUser?.dashboardEnabled ?? false)
+    : true;
+
+  if (isAgent && !dashboardEnabled) {
+    return <AgentWelcomeScreen agentName={currentUser?.username ?? "Agent"} />;
+  }
+
+  return <DashboardContent />;
 }
