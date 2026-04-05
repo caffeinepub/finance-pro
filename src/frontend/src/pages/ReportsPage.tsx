@@ -67,7 +67,8 @@ export default function ReportsPage() {
   const [showDateRange, setShowDateRange] = useState(false);
   const [dlStartDate, setDlStartDate] = useState("");
   const [dlEndDate, setDlEndDate] = useState("");
-  const [actualAmount, setActualAmount] = useState("");
+  const [actualCash, setActualCash] = useState("");
+  const [actualBank, setActualBank] = useState("");
 
   const filteredCustomers = useMemo(() => {
     return customers.filter((c) => {
@@ -134,9 +135,11 @@ export default function ReportsPage() {
     dynRight.reduce((s, f) => s + (Number(f.value) || 0), 0);
   const reminder = leftTotal - rightTotal;
 
-  const actualAmountNum = Number(actualAmount) || 0;
+  const actualCashNum = Number(actualCash) || 0;
+  const actualBankNum = Number(actualBank) || 0;
+  const actualAmountNum = actualCashNum + actualBankNum;
   const amountStatus =
-    actualAmount === ""
+    actualCash === "" && actualBank === ""
       ? null
       : actualAmountNum < reminder
         ? "shortage"
@@ -193,6 +196,8 @@ export default function ReportsPage() {
       reminder,
       savedBy: currentUser?.username ?? "",
       actualAmount: actualAmountNum,
+      actualCash: actualCashNum,
+      actualBank: actualBankNum,
       amountStatus: amountStatus ?? "ok",
     });
     showAlert(t.reportSaved, "success");
@@ -452,16 +457,43 @@ export default function ReportsPage() {
             </CardContent>
           </Card>
 
-          {/* Actual Amount Field */}
+          {/* Actual Amount Field - Cash + Bank split */}
           <div className="space-y-2">
             <Label className="text-sm font-medium">{t.actualAmount}</Label>
-            <Input
-              type="number"
-              value={actualAmount}
-              onChange={(e) => setActualAmount(e.target.value)}
-              placeholder="0"
-              data-ocid="reports.actual_amount_input"
-            />
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  {t.actualCash}
+                </Label>
+                <Input
+                  type="number"
+                  value={actualCash}
+                  onChange={(e) => setActualCash(e.target.value)}
+                  placeholder="0"
+                  data-ocid="reports.actual_cash_input"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">
+                  {t.actualBank}
+                </Label>
+                <Input
+                  type="number"
+                  value={actualBank}
+                  onChange={(e) => setActualBank(e.target.value)}
+                  placeholder="0"
+                  data-ocid="reports.actual_bank_input"
+                />
+              </div>
+            </div>
+            {(actualCash !== "" || actualBank !== "") && (
+              <div className="flex items-center justify-between rounded-lg px-3 py-2 bg-muted border text-sm">
+                <span className="text-muted-foreground font-medium">
+                  {t.actualAmount}:
+                </span>
+                <span className="font-bold">{formatINR(actualAmountNum)}</span>
+              </div>
+            )}
             {amountStatus === "shortage" && (
               <div
                 className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-red-50 border border-red-300 text-red-700"
@@ -780,6 +812,7 @@ export default function ReportsPage() {
                             : "bg-emerald-50 border-emerald-200"
                       }`}
                     >
+                      {/* Total Actual Amount */}
                       <div className="flex justify-between items-center">
                         <p className="text-xs text-muted-foreground">
                           {t.actualAmount}
@@ -796,6 +829,28 @@ export default function ReportsPage() {
                           {formatINR(viewReport.actualAmount)}
                         </p>
                       </div>
+                      {/* Cash / Bank breakdown */}
+                      {(viewReport.actualCash !== undefined ||
+                        viewReport.actualBank !== undefined) && (
+                        <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-current/10">
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground">
+                              {t.actualCash}
+                            </p>
+                            <p className="text-sm font-semibold">
+                              {formatINR(viewReport.actualCash ?? 0)}
+                            </p>
+                          </div>
+                          <div className="text-center">
+                            <p className="text-xs text-muted-foreground">
+                              {t.actualBank}
+                            </p>
+                            <p className="text-sm font-semibold">
+                              {formatINR(viewReport.actualBank ?? 0)}
+                            </p>
+                          </div>
+                        </div>
+                      )}
                       {(viewReport.amountStatus === "shortage" ||
                         viewReport.amountStatus === "high") && (
                         <div className="flex items-center gap-1.5 mt-1.5">

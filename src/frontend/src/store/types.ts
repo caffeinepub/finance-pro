@@ -80,6 +80,8 @@ export interface SavedReport {
   savedAt: string;
   savedBy: string;
   actualAmount?: number;
+  actualCash?: number;
+  actualBank?: number;
   amountStatus?: "shortage" | "high" | "ok";
 }
 

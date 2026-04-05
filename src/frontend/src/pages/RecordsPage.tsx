@@ -156,6 +156,10 @@ export default function RecordsPage() {
             const outstanding = outstandingAmount(c, emiPayments);
             const status = loanStatus(c, emiPayments);
             const line = lineCategories.find((l) => l.id === c.lineCategoryId);
+            const duesPaid = emiPayments.filter(
+              (e) => e.customerId === c.id,
+            ).length;
+            const duesTotal = c.loanType === "Post" ? 10 : 14;
             return (
               <Card
                 key={c.id}
@@ -184,7 +188,7 @@ export default function RecordsPage() {
                       {status === "Active" ? t.active : t.completed}
                     </Badge>
                   </div>
-                  <div className="grid grid-cols-3 gap-1 text-xs mb-2">
+                  <div className="grid grid-cols-3 gap-1 text-xs mb-1">
                     <div>
                       <p className="text-muted-foreground">{t.loanAmount}</p>
                       <p className="font-medium">{formatINR(c.loanAmount)}</p>
@@ -203,6 +207,13 @@ export default function RecordsPage() {
                         {formatINR(outstanding)}
                       </p>
                     </div>
+                  </div>
+                  {/* Dues count row */}
+                  <div className="mb-2">
+                    <span className="text-xs text-muted-foreground">Due: </span>
+                    <span className="text-xs font-semibold text-indigo-600">
+                      {duesPaid}/{duesTotal}
+                    </span>
                   </div>
                   <Dialog
                     open={openDialogId === c.id}

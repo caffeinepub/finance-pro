@@ -69,10 +69,14 @@ export default function UpdateEmiPage() {
       (e) => e.customerId === customerId && e.paymentDate === today,
     );
 
-  // Customers for the selected line, sorted unpaid first
+  // Customers for the selected line, excluding closed loans, sorted unpaid first
   const lineCustomers = selectedLine
     ? accessibleCustomers
-        .filter((c) => c.lineCategoryId === selectedLine)
+        .filter(
+          (c) =>
+            c.lineCategoryId === selectedLine &&
+            outstandingAmount(c, emiPayments) > 0,
+        )
         .sort((a, b) => {
           const aPaid = hasPaidToday(a.id) ? 1 : 0;
           const bPaid = hasPaidToday(b.id) ? 1 : 0;
@@ -89,9 +93,10 @@ export default function UpdateEmiPage() {
         : []
       : baseForSearch.filter(
           (c) =>
-            c.name.toLowerCase().includes(search.toLowerCase()) ||
-            c.serialNumber.toLowerCase().includes(search.toLowerCase()) ||
-            c.address.toLowerCase().includes(search.toLowerCase()),
+            outstandingAmount(c, emiPayments) > 0 &&
+            (c.name.toLowerCase().includes(search.toLowerCase()) ||
+              c.serialNumber.toLowerCase().includes(search.toLowerCase()) ||
+              c.address.toLowerCase().includes(search.toLowerCase())),
         );
 
   const customerEmis = (customerId: string) =>
@@ -394,6 +399,17 @@ export default function UpdateEmiPage() {
                     {formatINR(outstandingAmount(selected, emiPayments))}
                   </span>
                 </div>
+              </div>
+              {/* Dues count row */}
+              <div className="mt-2 pt-2 border-t border-primary/20 text-xs">
+                <span className="text-muted-foreground">Dues: </span>
+                <span className="font-semibold text-indigo-600">
+                  {
+                    emiPayments.filter((e) => e.customerId === selected.id)
+                      .length
+                  }
+                  /{selected.loanType === "Post" ? 10 : 14}
+                </span>
               </div>
             </CardContent>
           </Card>

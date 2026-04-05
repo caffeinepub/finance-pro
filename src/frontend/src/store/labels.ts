@@ -41,6 +41,8 @@ export const labels = {
     expense: "Expense",
     reminder: "Reminder",
     actualAmount: "Actual Amount",
+    actualCash: "Cash (பணம்)",
+    actualBank: "Account (வங்கி)",
     shortageWarning: "⚠️ Shortage: Actual amount is less than Reminder",
     highWarning: "⚠️ High: Actual amount is more than Reminder",
     amountMatchesReminder: "✓ Amount matches Reminder",
@@ -202,6 +204,8 @@ export const labels = {
       "\u0bae\u0bc0\u0ba4\u0bbf \u0b87\u0bb0\u0bc1\u0baa\u0bcd\u0baa\u0bc1",
     actualAmount:
       "\u0b89\u0ba3\u0bcd\u0bae\u0bc8\u0baf\u0bbe\u0ba9 \u0ba4\u0bca\u0b95\u0bc8",
+    actualCash: "பணம்",
+    actualBank: "வங்கி",
     shortageWarning:
       "\u26a0\ufe0f \u0b95\u0bc1\u0bb1\u0bc8\u0bb5\u0bc1: \u0b89\u0ba3\u0bcd\u0bae\u0bc8\u0baf\u0bbe\u0ba9 \u0ba4\u0bca\u0b95\u0bc8 \u0bae\u0bc0\u0ba4\u0bbf \u0b87\u0bb0\u0bc1\u0baa\u0bcd\u0baa\u0bc8 \u0bb5\u0bbf\u0b9f \u0b95\u0bc1\u0bb1\u0bc8\u0bb5\u0bbe\u0b95 \u0b89\u0bb3\u0bcd\u0bb3\u0ba4\u0bc1",
     highWarning:
