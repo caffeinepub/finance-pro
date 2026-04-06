@@ -105,6 +105,8 @@ export const idlService = IDL.Service({
   'setEMIPaymentMetaBulk' : IDL.Func([IDL.Vec(EMIPaymentMetaEntry)], [], []),
   'getEMIPaymentMeta' : IDL.Func([], [IDL.Vec(EMIPaymentMetaEntry)], ['query']),
   'deleteEMIPaymentMeta' : IDL.Func([IDL.Text], [], []),
+  'setLineLocks' : IDL.Func([IDL.Text], [], []),
+  'getLineLocks' : IDL.Func([], [IDL.Text], ['query']),
 });
 
 export const idlInitArgs = [];
@@ -207,6 +209,8 @@ export const idlFactory = ({ IDL }) => {
     'setEMIPaymentMetaBulk' : IDL.Func([IDL.Vec(EMIPaymentMetaEntry)], [], []),
     'getEMIPaymentMeta' : IDL.Func([], [IDL.Vec(EMIPaymentMetaEntry)], ['query']),
     'deleteEMIPaymentMeta' : IDL.Func([IDL.Text], [], []),
+    'setLineLocks' : IDL.Func([IDL.Text], [], []),
+    'getLineLocks' : IDL.Func([], [IDL.Text], ['query']),
   });
 };
 

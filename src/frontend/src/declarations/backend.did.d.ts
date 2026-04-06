@@ -101,6 +101,8 @@ export interface _SERVICE {
   'setEMIPaymentMetaBulk' : ActorMethod<[Array<[string, EMIPaymentMeta]>], undefined>,
   'getEMIPaymentMeta' : ActorMethod<[], Array<[string, EMIPaymentMeta]>>,
   'deleteEMIPaymentMeta' : ActorMethod<[string], undefined>,
+  'setLineLocks' : ActorMethod<[string], undefined>,
+  'getLineLocks' : ActorMethod<[], string>,
 }
 export declare const idlService: IDL.ServiceClass;
 export declare const idlInitArgs: IDL.Type[];

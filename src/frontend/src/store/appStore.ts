@@ -8,6 +8,7 @@ import {
   loadEMIPaymentMeta,
   loadFromCloud,
   loadLineCategories,
+  loadLineLocks,
   loadLockedLines,
   loadSavedReports,
   syncAllAgentsToCloud,
@@ -15,16 +16,19 @@ import {
   syncEMIMetaToCloud,
   syncEMIToCloud,
   syncLineCategoriesToCloud,
+  syncLineLocksToCloud,
   syncLockedLinesToCloud,
   syncSavedReportToCloud,
   uploadAllLocalDataToCloud,
 } from "../utils/cloudSync";
+import { addDaysToDate, getTodayIST } from "../utils/dateFormat";
 import type {
   AppState,
   Customer,
   EMIPayment,
   EMIPaymentMeta,
   LineCategory,
+  LineLockEntry,
   ReportCustomField,
   SavedReport,
   User,
@@ -75,9 +79,10 @@ interface AppStore extends AppState {
   deleteReportCustomField: (id: string) => void;
   saveReport: (r: Omit<SavedReport, "id" | "savedAt">) => void;
   deleteSavedReport: (id: string) => void;
-  lockedLines: string[];
-  lockLine: (lineName: string) => void;
+  lineLocksDetailed: LineLockEntry[];
+  lockLine: (lineName: string, autoUnlockDate?: string | null) => void;
   unlockLine: (lineName: string) => void;
+  checkAndApplyAutoUnlocks: () => void;
   customerMedia: Record<string, { photoUrl: string; idProofUrls: string[] }>;
   setCustomerMedia: (
     customerId: string,
@@ -150,7 +155,7 @@ export const useAppStore = create<AppStore>()(
       customers: [] as Customer[],
       emiPayments: [] as EMIPayment[],
       savedReports: [] as SavedReport[],
-      lockedLines: [] as string[],
+      lineLocksDetailed: [] as LineLockEntry[],
       customerMedia: {} as Record<
         string,
         { photoUrl: string; idProofUrls: string[] }
@@ -334,7 +339,9 @@ export const useAppStore = create<AppStore>()(
             ),
           ],
         }));
-        get().lockLine(r.lineName);
+        // Auto-lock with 7-day unlock date from report date (reportDate + 7 days)
+        const autoUnlockDate = addDaysToDate(r.reportDate, 7);
+        get().lockLine(r.lineName, autoUnlockDate);
         fireAndForget(
           () => syncSavedReportToCloud(newReport),
           get().setSyncStatus,
@@ -355,10 +362,18 @@ export const useAppStore = create<AppStore>()(
         }
       },
 
-      lockLine: (lineName) => {
-        const next = [...new Set([...get().lockedLines, lineName])];
-        set({ lockedLines: next });
-        fireAndForget(() => syncLockedLinesToCloud(next), get().setSyncStatus);
+      lockLine: (lineName, autoUnlockDate) => {
+        const existing = get().lineLocksDetailed.find(
+          (e) => e.lineName === lineName,
+        );
+        if (existing) return; // already locked, do not update (preserves original autoUnlockDate)
+        const entry: LineLockEntry = {
+          lineName,
+          autoUnlockDate: autoUnlockDate ?? null,
+        };
+        const next = [...get().lineLocksDetailed, entry];
+        set({ lineLocksDetailed: next });
+        fireAndForget(() => syncLineLocksToCloud(next), get().setSyncStatus);
       },
       setCustomerMedia: (customerId, media) => {
         set((s) => ({
@@ -366,9 +381,25 @@ export const useAppStore = create<AppStore>()(
         }));
       },
       unlockLine: (lineName) => {
-        const next = get().lockedLines.filter((n) => n !== lineName);
-        set({ lockedLines: next });
-        fireAndForget(() => syncLockedLinesToCloud(next), get().setSyncStatus);
+        const next = get().lineLocksDetailed.filter(
+          (e) => e.lineName !== lineName,
+        );
+        set({ lineLocksDetailed: next });
+        fireAndForget(() => syncLineLocksToCloud(next), get().setSyncStatus);
+      },
+
+      checkAndApplyAutoUnlocks: () => {
+        const today = getTodayIST();
+        const current = get().lineLocksDetailed;
+        // Keep locks that are indefinite (null) OR whose auto-unlock date is still in the future
+        const next = current.filter((e) => {
+          if (e.autoUnlockDate === null) return true; // indefinite, keep locked
+          return e.autoUnlockDate > today; // keep if unlock date is in the future
+        });
+        if (next.length !== current.length) {
+          set({ lineLocksDetailed: next });
+          fireAndForget(() => syncLineLocksToCloud(next), get().setSyncStatus);
+        }
       },
 
       restoreFromBackup: async (data): Promise<boolean> => {
@@ -405,7 +436,7 @@ export const useAppStore = create<AppStore>()(
           lineCategories: state.lineCategories,
           agents: allUsers,
           savedReports: state.savedReports,
-          lockedLines: state.lockedLines,
+          lockedLines: state.lineLocksDetailed.map((e) => e.lineName),
           emiPaymentMeta,
         });
 
@@ -460,6 +491,7 @@ export const useAppStore = create<AppStore>()(
             remoteLineCategories,
             remoteEntries,
             remoteSavedReports,
+            remoteLineLocks,
             remoteLockedLines,
             remoteEMIMeta,
           ] = await Promise.all([
@@ -467,6 +499,7 @@ export const useAppStore = create<AppStore>()(
             loadLineCategories(),
             loadAgentAccounts(),
             loadSavedReports(),
+            loadLineLocks(),
             loadLockedLines(),
             loadEMIPaymentMeta(),
           ]);
@@ -562,16 +595,50 @@ export const useAppStore = create<AppStore>()(
               users: [...admins, ...cloudAgents],
               currentUser: updatedCurrentUser,
               savedReports,
-              // Only update lockedLines if the cloud call succeeded (non-null).
-              // null means the call failed — keep existing locks to prevent silent unlock.
-              // [] means admin intentionally unlocked all lines — apply it.
-              lockedLines:
-                remoteLockedLines !== null ? remoteLockedLines : s.lockedLines,
+              // Resolve lineLocksDetailed:
+              // 1. If loadLineLocks() returns data (non-null, even empty []) => use it
+              // 2. If loadLineLocks() returns [] AND loadLockedLines() has legacy data => migrate
+              // 3. If loadLineLocks() returns null (error) => keep existing locks
+              lineLocksDetailed: (() => {
+                if (remoteLineLocks === null) {
+                  // Cloud call failed — keep existing locks
+                  return s.lineLocksDetailed;
+                }
+                if (
+                  remoteLineLocks.length === 0 &&
+                  remoteLockedLines !== null &&
+                  remoteLockedLines.length > 0
+                ) {
+                  // Migration: convert old string[] locks to LineLockEntry[] with null autoUnlockDate
+                  return remoteLockedLines.map((name) => ({
+                    lineName: name,
+                    autoUnlockDate: null,
+                  }));
+                }
+                return remoteLineLocks;
+              })(),
               isCloudLoaded: true,
             };
           });
 
           setSyncStatus("synced");
+
+          // Apply any auto-unlocks that have matured
+          get().checkAndApplyAutoUnlocks();
+
+          // If we migrated old string[] locks to new LineLockEntry[] format, sync to new storage
+          if (
+            remoteLineLocks !== null &&
+            remoteLineLocks.length === 0 &&
+            remoteLockedLines !== null &&
+            remoteLockedLines.length > 0
+          ) {
+            const migratedLocks = get().lineLocksDetailed;
+            fireAndForget(
+              () => syncLineLocksToCloud(migratedLocks),
+              setSyncStatus,
+            );
+          }
 
           // If duplicates were found, re-sync the clean list to cloud
           if (hadDuplicates) {
@@ -595,7 +662,7 @@ export const useAppStore = create<AppStore>()(
                 lineCategories: state.lineCategories,
                 agents: allUsers,
                 savedReports: state.savedReports,
-                lockedLines: state.lockedLines,
+                lockedLines: state.lineLocksDetailed.map((e) => e.lineName),
                 emiPaymentMeta,
               });
             }, setSyncStatus);
@@ -631,7 +698,7 @@ export const useAppStore = create<AppStore>()(
           lineCategories: state.lineCategories,
           agents: allUsers,
           savedReports: state.savedReports,
-          lockedLines: state.lockedLines,
+          lockedLines: state.lineLocksDetailed.map((e) => e.lineName),
           emiPaymentMeta,
         });
         setSyncStatus(success ? "synced" : "error");

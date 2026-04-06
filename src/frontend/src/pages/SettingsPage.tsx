@@ -44,6 +44,7 @@ import {
   registerBiometric,
   setBiometricEnabled,
 } from "../utils/biometricLock";
+import { addDaysToDate } from "../utils/dateFormat";
 
 interface Props {
   onClose: () => void;
@@ -61,9 +62,10 @@ export default function SettingsPage({ onClose }: Props) {
     reportCustomFields,
     restoreFromBackup,
     uploadToCloud,
-    lockedLines,
+    lineLocksDetailed,
     lockLine,
     unlockLine,
+    savedReports,
   } = store;
   const t = labels[language];
   const isAdmin = currentUser?.role === "admin";
@@ -952,7 +954,14 @@ export default function SettingsPage({ onClose }: Props) {
                 <h3 className="text-sm font-semibold">{t.lineLocks}</h3>
               </div>
               {lineCategories.map((line, i) => {
-                const isLocked = lockedLines.includes(line.name);
+                const lockEntry = lineLocksDetailed.find(
+                  (e) => e.lineName === line.name,
+                );
+                const isLocked = !!lockEntry;
+                // Compute auto-unlock date info
+                const autoUnlockDisplay = lockEntry?.autoUnlockDate
+                  ? lockEntry.autoUnlockDate.split("-").reverse().join("-")
+                  : null;
                 return (
                   <Card
                     key={`${line.id}-lock`}
@@ -960,13 +969,24 @@ export default function SettingsPage({ onClose }: Props) {
                     data-ocid={`settings.line_lock.${i + 1}`}
                   >
                     <CardContent className="p-3 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {isLocked ? (
-                          <Lock className="h-4 w-4 text-destructive" />
-                        ) : (
-                          <Unlock className="h-4 w-4 text-emerald-600" />
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-2">
+                          {isLocked ? (
+                            <Lock className="h-4 w-4 text-destructive" />
+                          ) : (
+                            <Unlock className="h-4 w-4 text-emerald-600" />
+                          )}
+                          <span className="text-sm font-medium">
+                            {line.name}
+                          </span>
+                        </div>
+                        {isLocked && (
+                          <span className="text-xs text-muted-foreground ml-6">
+                            {autoUnlockDisplay
+                              ? t.nextAutoUnlock(autoUnlockDisplay)
+                              : t.lockedIndefinitely}
+                          </span>
                         )}
-                        <span className="text-sm font-medium">{line.name}</span>
                       </div>
                       <Button
                         size="sm"
@@ -977,9 +997,24 @@ export default function SettingsPage({ onClose }: Props) {
                             : "text-destructive border-destructive hover:bg-red-50"
                         }
                         data-ocid={`settings.line_lock_toggle.${i + 1}`}
-                        onClick={() =>
-                          isLocked ? unlockLine(line.name) : lockLine(line.name)
-                        }
+                        onClick={() => {
+                          if (isLocked) {
+                            unlockLine(line.name);
+                          } else {
+                            // Find the last saved report for this line to compute autoUnlockDate
+                            const lastReport = savedReports
+                              .filter((r) => r.lineName === line.name)
+                              .sort(
+                                (a, b) =>
+                                  new Date(b.reportDate).getTime() -
+                                  new Date(a.reportDate).getTime(),
+                              )[0];
+                            const autoUnlock = lastReport
+                              ? addDaysToDate(lastReport.reportDate, 7)
+                              : null;
+                            lockLine(line.name, autoUnlock);
+                          }
+                        }}
                       >
                         {isLocked ? (
                           <>

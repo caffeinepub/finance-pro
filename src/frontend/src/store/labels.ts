@@ -92,6 +92,11 @@ export const labels = {
       "EMI update not allowed. Report already submitted for {line} today.",
     loanAlreadyClosed: "Cannot add EMI. This loan is already closed.",
     lineLockedByAdmin: "This line is locked by admin. Contact admin to unlock.",
+    lineLockedUntil: (date: string) =>
+      `This line is locked until ${date}. Contact admin to unlock early.`,
+    lockedIndefinitely: "Locked indefinitely",
+    lockedUntilDate: (date: string) => `Locked until ${date}`,
+    nextAutoUnlock: (date: string) => `Next auto-unlock: ${date}`,
     lineLocks: "Line Locks",
     unlockLine: "Unlock",
     lockLine: "Lock",
@@ -288,6 +293,14 @@ export const labels = {
       "EMI \u0b9a\u0bc7\u0bb0\u0bcd\u0b95\u0bcd\u0b95 \u0bae\u0bc1\u0b9f\u0bbf\u0baf\u0bbe\u0ba4\u0bc1. \u0b87\u0ba8\u0bcd\u0ba4 \u0b95\u0b9f\u0ba9\u0bcd \u0b8f\u0bb1\u0bcd\u0b95\u0ba9\u0bb5\u0bc7 \u0bae\u0bc2\u0b9f\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0ba4\u0bc1.",
     lineLockedByAdmin:
       "\u0b87\u0ba8\u0bcd\u0ba4 \u0bb2\u0bc8\u0ba9\u0bcd \u0ba8\u0bbf\u0bb0\u0bcd\u0bb5\u0bbe\u0b95\u0bbf\u0baf\u0bbe\u0bb2\u0bcd \u0baa\u0bc2\u0b9f\u0bcd\u0b9f\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0bc1\u0bb3\u0bcd\u0bb3\u0ba4\u0bc1.",
+    lineLockedUntil: (date: string) =>
+      `\u0b87\u0ba8\u0bcd\u0ba4 \u0bb2\u0bc8\u0ba9\u0bcd ${date} \u0bb5\u0bb0\u0bc8 \u0baa\u0bc2\u0b9f\u0bcd\u0b9f\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0bc1\u0bb3\u0bcd\u0bb3\u0ba4\u0bc1. \u0bae\u0bc1\u0ba9\u0bcd\u0b95\u0bc2\u0b9f\u0bcd\u0b9f\u0bbf\u0baf\u0bc7 \u0ba4\u0bbf\u0bb1\u0b95\u0bcd\u0b95 \u0ba8\u0bbf\u0bb0\u0bcd\u0bb5\u0bbe\u0b95\u0bbf\u0baf\u0bc8 \u0ba4\u0bca\u0b9f\u0bb0\u0bcd\u0baa\u0bc1 \u0b95\u0bca\u0bb3\u0bcd\u0bb3\u0bb5\u0bc1\u0bae\u0bcd.`,
+    lockedIndefinitely:
+      "\u0ba8\u0bbf\u0bb0\u0ba8\u0bcd\u0ba4\u0bb0\u0bae\u0bbe\u0b95 \u0baa\u0bc2\u0b9f\u0bcd\u0b9f\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0bc1\u0bb3\u0bcd\u0bb3\u0ba4\u0bc1",
+    lockedUntilDate: (date: string) =>
+      `${date} \u0bb5\u0bb0\u0bc8 \u0baa\u0bc2\u0b9f\u0bcd\u0b9f\u0baa\u0bcd\u0baa\u0b9f\u0bcd\u0b9f\u0bc1\u0bb3\u0bcd\u0bb3\u0ba4\u0bc1`,
+    nextAutoUnlock: (date: string) =>
+      `\u0b85\u0b9f\u0bc1\u0ba4\u0bcd\u0ba4 \u0ba4\u0bbe\u0ba9\u0bbe\u0b95 \u0ba4\u0bbf\u0bb1\u0b95\u0bcd\u0b95\u0bc1\u0bae\u0bcd \u0ba4\u0bc7\u0ba4\u0bbf: ${date}`,
     lineLocks: "\u0bb2\u0bc8\u0ba9\u0bcd \u0bb2\u0bbe\u0b95\u0bcd",
     unlockLine: "\u0ba4\u0bbf\u0bb1\u0b95\u0bcd\u0b95\u0bb5\u0bc1\u0bae\u0bcd",
     lockLine: "\u0baa\u0bc2\u0b9f\u0bcd\u0b9f\u0bb5\u0bc1\u0bae\u0bcd",

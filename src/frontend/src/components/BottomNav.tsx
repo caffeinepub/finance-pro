@@ -6,7 +6,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 
-type LabelSet = Record<string, string>;
+type LabelSet = Record<string, string | ((...args: string[]) => string)>;
 
 interface Props {
   current: string;
@@ -62,7 +62,11 @@ export default function BottomNav({ current, onChange, t }: Props) {
                   active ? "font-semibold" : ""
                 }`}
               >
-                {t[item.labelKey] ?? item.labelKey}
+                {
+                  (typeof t[item.labelKey] === "string"
+                    ? t[item.labelKey]
+                    : item.labelKey) as string
+                }
               </span>
               {active && (
                 <div className="absolute top-0 h-0.5 w-8 bg-primary rounded-b-full" />

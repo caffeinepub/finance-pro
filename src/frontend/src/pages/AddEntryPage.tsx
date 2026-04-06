@@ -115,7 +115,8 @@ export default function AddEntryPage() {
     language,
     currentUser,
     customers,
-    lockedLines,
+    lineLocksDetailed,
+    checkAndApplyAutoUnlocks,
   } = useAppStore();
   const t = labels[language];
   const { showAlert, AlertComponent } = useAlert(language);
@@ -324,10 +325,17 @@ export default function AddEntryPage() {
     if (Object.keys(errs).length > 0) return;
 
     if (isAgent) {
+      checkAndApplyAutoUnlocks();
       const lineName =
         lineCategories.find((l) => l.id === form.lineCategoryId)?.name ?? "";
-      if (lockedLines.includes(lineName)) {
-        showAlert(t.lineLockedByAdmin, "error");
+      const lockEntry = lineLocksDetailed.find((e) => e.lineName === lineName);
+      if (lockEntry) {
+        const msg = lockEntry.autoUnlockDate
+          ? t.lineLockedUntil(
+              lockEntry.autoUnlockDate.split("-").reverse().join("-"),
+            )
+          : t.lineLockedByAdmin;
+        showAlert(msg, "error");
         return;
       }
     }

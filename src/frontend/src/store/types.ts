@@ -101,3 +101,8 @@ export interface AppState {
   currentUser: User | null;
   language: "en" | "ta";
 }
+
+export interface LineLockEntry {
+  lineName: string;
+  autoUnlockDate: string | null; // YYYY-MM-DD in IST, null = indefinite (no report)
+}

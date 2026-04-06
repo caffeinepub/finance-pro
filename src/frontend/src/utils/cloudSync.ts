@@ -9,6 +9,7 @@ import type {
 import { createActorWithConfig } from "../config";
 import type {
   EMIPaymentMeta,
+  LineLockEntry,
   SavedReport,
   SavedReportField,
 } from "../store/types";
@@ -401,5 +402,33 @@ export async function syncLockedLinesToCloud(lines: string[]): Promise<void> {
     await actor.setLockedLines(lines);
   } catch {
     // best-effort; silently swallow
+  }
+}
+
+// Line Locks with auto-unlock dates — stored as JSON text in a separate backend field.
+// Returns null on error (to distinguish from empty array).
+// We cast the actor to any since getLineLocks/setLineLocks are new methods not
+// yet in the generated backendInterface type.
+export async function loadLineLocks(): Promise<LineLockEntry[] | null> {
+  try {
+    const actor = await getActor();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const json: string = await (actor as any).getLineLocks();
+    if (!json || json === "[]" || json.trim() === "") return [];
+    return JSON.parse(json) as LineLockEntry[];
+  } catch {
+    return null;
+  }
+}
+
+export async function syncLineLocksToCloud(
+  locks: LineLockEntry[],
+): Promise<void> {
+  try {
+    const actor = await getActor();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    await (actor as any).setLineLocks(JSON.stringify(locks));
+  } catch {
+    // best-effort
   }
 }

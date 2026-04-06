@@ -303,4 +303,17 @@ actor {
   public shared func deleteCustomerMedia(customerId : Text) : async () {
     customerMediaMap.remove(customerId);
   };
+
+  // Line locks with auto-unlock dates — stored as JSON text to avoid type changes.
+  // Format: [{"lineName":"Line A","autoUnlockDate":"2026-04-13"},...] or null for indefinite
+  stable var stableLineLocks : Text = "[]";
+
+  public shared func setLineLocks(json : Text) : async () {
+    stableLineLocks := json;
+  };
+
+  public query func getLineLocks() : async Text {
+    stableLineLocks;
+  };
+
 };

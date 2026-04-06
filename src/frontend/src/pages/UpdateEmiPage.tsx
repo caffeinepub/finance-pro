@@ -26,7 +26,8 @@ export default function UpdateEmiPage() {
     lineCategories,
     addEMIPayment,
     updateEMIPayment,
-    lockedLines,
+    lineLocksDetailed,
+    checkAndApplyAutoUnlocks,
     language,
     currentUser,
   } = useAppStore();
@@ -151,11 +152,18 @@ export default function UpdateEmiPage() {
       return;
     }
     if (isAgent) {
+      checkAndApplyAutoUnlocks();
       const lineName =
         lineCategories.find((l) => l.id === selected.lineCategoryId)?.name ??
         "";
-      if (lockedLines.includes(lineName)) {
-        showAlert(t.lineLockedByAdmin, "error");
+      const lockEntry = lineLocksDetailed.find((e) => e.lineName === lineName);
+      if (lockEntry) {
+        const msg = lockEntry.autoUnlockDate
+          ? t.lineLockedUntil(
+              lockEntry.autoUnlockDate.split("-").reverse().join("-"),
+            )
+          : t.lineLockedByAdmin;
+        showAlert(msg, "error");
         return;
       }
     }
