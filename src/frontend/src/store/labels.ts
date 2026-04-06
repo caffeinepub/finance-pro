@@ -142,6 +142,16 @@ export const labels = {
     collectionBreakdown: "Collection Breakdown",
     cashCollection: "Cash",
     accountCollection: "Bank Transfer",
+    security: "Security",
+    fingerprintLock: "Fingerprint Lock",
+    fingerprintLockDesc:
+      "Use your fingerprint to unlock the app each time you open it.",
+    fingerprintNotSupported:
+      "Fingerprint lock is not supported on this device.",
+    unlockWithFingerprint: "Unlock with Fingerprint",
+    usePassword: "Use Password Instead",
+    biometricFailed: "Fingerprint not recognized. Try again.",
+    biometricSetupFailed: "Could not set up fingerprint. Please try again.",
   },
   ta: {
     appName:
@@ -345,6 +355,15 @@ export const labels = {
     collectionBreakdown: "வசூல் விவரம்",
     cashCollection: "ரொக்கம்",
     accountCollection: "வங்கி பரிவர்த்தனை",
+    security: "பாதுகாப்பு",
+    fingerprintLock: "கைரேகை பூட்டு",
+    fingerprintLockDesc:
+      "ஒவ்வொரு முறையும் ஆப்பைத் திறக்கும் போது உங்கள் கைரேகையைப் பயன்படுத்தி திறக்கவும்.",
+    fingerprintNotSupported: "இந்த சாதனத்தில் கைரேகை பூட்டு ஆதரிக்கப்படவில்லை.",
+    unlockWithFingerprint: "கைரேகையுடன் திறக்கவும்",
+    usePassword: "கடவுச்சொல் பயன்படுத்தவும்",
+    biometricFailed: "கைரேகை அங்கீகரிக்கப்படவில்லை. மீண்டும் முயற்சிக்கவும்.",
+    biometricSetupFailed: "கைரேகை அமைக்க முடியவில்லை. மீண்டும் முயற்சிக்கவும்.",
   },
 };
 

@@ -1,32 +1,61 @@
 # Finance Pro
 
 ## Current State
-
-- `UpdateEmiPage.tsx`: Shows all customers for a selected line (including Closed/Completed loans). Has Paid/Unpaid tags, line selector, search. After selecting a customer shows Loan Repay Amount and Outstanding Balance in a summary card.
-- `RecordsPage.tsx`: Shows customer cards with name, serial, line, loan type, date, loan amount, paid amount, outstanding amount, and a status badge (Active/Completed). No dues count shown on cards.
-- `calculations.ts`: Has `loanStatus()` which returns `"Active"` | `"Completed"` based on outstanding > 0. Has `paidAmount()` counting total EMI payments per customer.
-- `types.ts`: `Customer.loanType` is `"Pre"` | `"Post"`. `EMIPayment` has `customerId` for linking.
+Finance Pro is a fully functional PWA for lending/finance businesses. It has:
+- Username/password login for all users (admin + agents)
+- Settings page with General, Agents, and Lines sections
+- All major features: Add Entry, Update EMI, Records, Reports, Dashboard
+- Bilingual support (English/Tamil)
+- Cloud-synced business data via Motoko backend
 
 ## Requested Changes (Diff)
 
 ### Add
-- **Dues display on Records tab customer cards**: Show `"Due: X/10"` (Post) or `"Due: X/14"` (Pre) on each card, visible without opening the detail view. X = number of EMI entries for that customer.
-- **Dues display in Update EMI after customer selection**: Below the Outstanding Balance field in the selected customer summary card, show `"Dues: X/10"` or `"Dues: X/14"`.
+- `BiometricLock` utility module (`src/utils/biometricLock.ts`) to handle WebAuthn registration, verification, and localStorage-based per-device state
+- `BiometricLockScreen` component: full-screen overlay shown when app opens and biometric lock is enabled. Shows a fingerprint icon button to trigger biometric auth, a fallback "Use Password" link, and appropriate error/unsupported states.
+- Settings > Security section (new tab/section): toggle to enable/disable fingerprint lock. Only visible if device supports WebAuthn biometrics. Shows "Not supported on this device" if not supported.
+- Labels for fingerprint lock UI in both `en` and `ta` in `labels.ts`
 
 ### Modify
-- **Update EMI customer list**: Filter out customers whose loan status is `"Completed"` (outstanding <= 0). Currently they are shown in the list (blocked at save time). Change the filter so `lineCustomers` and `filtered` lists exclude closed/completed loan customers entirely.
+- `App.tsx`: On app mount, if biometric lock is enabled for the current device/user, show `BiometricLockScreen` before the main app. On successful biometric auth, proceed to normal app. On fallback, show normal login.
+- `SettingsPage.tsx`: Add a new "Security" section with the biometric lock toggle.
+- `store/types.ts`: No changes needed (biometric state is device-local only, not cloud-synced)
+- `store/appStore.ts`: No changes needed (biometric state is device-local, stored in localStorage per user)
 
 ### Remove
-- Nothing removed.
+- Nothing removed
 
 ## Implementation Plan
 
-1. **UpdateEmiPage.tsx**:
-   - In `lineCustomers` filter, add `&& outstandingAmount(c, emiPayments) > 0` to exclude completed/closed loans.
-   - In the search `baseForSearch` / `filtered` logic, also filter out closed loans.
-   - In the selected customer summary card, add a dues row below the Outstanding Balance: compute `duesPaid = emiPayments.filter(e => e.customerId === selected.id).length` and `duesTotal = selected.loanType === 'Post' ? 10 : 14`, display `"Dues: {duesPaid}/{duesTotal}"`.
+1. **`src/utils/biometricLock.ts`** -- WebAuthn utility:
+   - `isBiometricSupported()`: checks `PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()`
+   - `isBiometricEnabled(userId)`: reads from localStorage key `biometric_enabled_{userId}`
+   - `setBiometricEnabled(userId, enabled)`: writes to localStorage
+   - `registerBiometric(userId, username)`: calls `navigator.credentials.create()` and stores the credential ID in localStorage `biometric_cred_{userId}`
+   - `verifyBiometric(userId)`: calls `navigator.credentials.get()` with stored credential ID. Returns true on success, false on failure/cancel.
+   - `clearBiometric(userId)`: removes all biometric keys from localStorage
 
-2. **RecordsPage.tsx**:
-   - On each customer card, compute `duesPaid = emiPayments.filter(e => e.customerId === c.id).length` and `duesTotal = c.loanType === 'Post' ? 10 : 14`.
-   - Display `"Due: {duesPaid}/{duesTotal}"` on the card itself (below the loan type/date line or in the stats grid), visible without tapping.
-   - The sorted filtered list already excludes nothing (shows all including Closed) -- keep that behavior for Records; only Update EMI hides closed loans.
+2. **`src/components/BiometricLockScreen.tsx`** -- Lock screen component:
+   - Full-screen overlay with app name/branding
+   - Fingerprint icon button (auto-triggers biometric on mount)
+   - Shows error message after failure
+   - After 3 failures OR user taps "Use Password": calls `onFallback()` to revert to normal password login
+   - "Unlock with Fingerprint" button to retry
+   - Clean, branded UI consistent with existing app style
+
+3. **`src/pages/SettingsPage.tsx`** -- Add Security section:
+   - New `security` tab alongside general/agents/lines
+   - Shows biometric toggle (Switch component)
+   - If not supported: show grayed-out message "Not supported on this device"
+   - On enable: calls `registerBiometric()`, stores credential
+   - On disable: calls `clearBiometric()`, disables lock
+   - Only affects the current device/user
+
+4. **`src/App.tsx`** -- Guard logic:
+   - On mount, check if `currentUser` is set in localStorage AND `isBiometricEnabled(userId)` is true
+   - If yes, show `BiometricLockScreen` instead of main app
+   - On successful auth: dismiss lock screen, show main app
+   - On fallback: clear `currentUser` session (force re-login with password)
+
+5. **`src/store/labels.ts`** -- Add new label keys:
+   - `security`, `fingerprintLock`, `fingerprintLockDesc`, `enableFingerprint`, `fingerprintNotSupported`, `unlockWithFingerprint`, `usePassword`, `biometricFailed`, `biometricSuccess` -- in both `en` and `ta`

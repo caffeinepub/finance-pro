@@ -13,12 +13,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   ArrowLeft,
   Check,
   CloudUpload,
   Download,
+  Fingerprint,
   Loader2,
   Lock,
   Pencil,
@@ -35,6 +37,13 @@ import { useAlert } from "../components/AlertPopup";
 import { useAppStore } from "../store/appStore";
 import { labels } from "../store/labels";
 import { User } from "../store/types";
+import {
+  clearBiometric,
+  isBiometricEnabled,
+  isBiometricSupported,
+  registerBiometric,
+  setBiometricEnabled,
+} from "../utils/biometricLock";
 
 interface Props {
   onClose: () => void;
@@ -94,6 +103,12 @@ export default function SettingsPage({ onClose }: Props) {
   const [isInstalled, setIsInstalled] = useState(false);
   const [showInstallInstructions, setShowInstallInstructions] = useState(false);
 
+  // Biometric lock state
+  const [biometricSupported, setBiometricSupported] = useState(false);
+  const [biometricEnabled, setBiometricEnabledState] = useState(false);
+  const [biometricError, setBiometricError] = useState<string | null>(null);
+  const [biometricLoading, setBiometricLoading] = useState(false);
+
   useEffect(() => {
     if (window.matchMedia("(display-mode: standalone)").matches) {
       setIsInstalled(true);
@@ -108,6 +123,41 @@ export default function SettingsPage({ onClose }: Props) {
       window.removeEventListener("beforeinstallprompt", handler);
     };
   }, []);
+
+  // Load biometric state on mount
+  useEffect(() => {
+    if (!currentUser) return;
+    isBiometricSupported().then((supported) => {
+      setBiometricSupported(supported);
+      if (supported) {
+        setBiometricEnabledState(isBiometricEnabled(currentUser.id));
+      }
+    });
+  }, [currentUser]);
+
+  const handleBiometricToggle = async (enabled: boolean) => {
+    if (!currentUser) return;
+    setBiometricError(null);
+    if (enabled) {
+      setBiometricLoading(true);
+      const success = await registerBiometric(
+        currentUser.id,
+        currentUser.username,
+      );
+      setBiometricLoading(false);
+      if (success) {
+        setBiometricEnabled(currentUser.id, true);
+        setBiometricEnabledState(true);
+      } else {
+        setBiometricError(t.biometricSetupFailed);
+        setBiometricEnabledState(false);
+      }
+    } else {
+      clearBiometric(currentUser.id);
+      setBiometricEnabled(currentUser.id, false);
+      setBiometricEnabledState(false);
+    }
+  };
 
   const handleDownloadBackup = () => {
     const backupData = {
@@ -448,6 +498,13 @@ export default function SettingsPage({ onClose }: Props) {
               {t.lines}
             </TabsTrigger>
           )}
+          <TabsTrigger
+            value="security"
+            className="flex-1 text-xs"
+            data-ocid="settings.security.tab"
+          >
+            {t.security}
+          </TabsTrigger>
         </TabsList>
 
         {/* GENERAL */}
@@ -943,6 +1000,73 @@ export default function SettingsPage({ onClose }: Props) {
             </div>
           </TabsContent>
         )}
+
+        {/* SECURITY */}
+        <TabsContent value="security" className="mt-3 space-y-4">
+          <Card data-ocid="settings.security.card">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm flex items-center gap-2">
+                <Fingerprint className="h-4 w-4" />
+                {t.fingerprintLock}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {!biometricSupported ? (
+                <p className="text-sm text-muted-foreground">
+                  {t.fingerprintNotSupported}
+                </p>
+              ) : (
+                <>
+                  <p className="text-xs text-muted-foreground">
+                    {t.fingerprintLockDesc}
+                  </p>
+                  <div className="flex items-center justify-between py-1">
+                    <Label
+                      htmlFor="biometric-toggle"
+                      className="text-sm font-medium cursor-pointer"
+                    >
+                      {t.fingerprintLock}
+                    </Label>
+                    <Switch
+                      id="biometric-toggle"
+                      checked={biometricEnabled}
+                      onCheckedChange={handleBiometricToggle}
+                      disabled={biometricLoading}
+                      data-ocid="settings.biometric.switch"
+                    />
+                  </div>
+                  {biometricLoading && (
+                    <div
+                      className="flex items-center gap-2 text-xs text-muted-foreground"
+                      data-ocid="settings.biometric.loading_state"
+                    >
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                      {language === "ta" ? "அமைக்கிறது..." : "Setting up..."}
+                    </div>
+                  )}
+                  {biometricError && (
+                    <p
+                      className="text-xs text-destructive"
+                      data-ocid="settings.biometric.error_state"
+                    >
+                      {biometricError}
+                    </p>
+                  )}
+                  {biometricEnabled && (
+                    <p
+                      className="text-xs text-emerald-600"
+                      data-ocid="settings.biometric.success_state"
+                    >
+                      {language === "ta"
+                        ? "✓ கைரேகை பூட்டு இயக்கப்பட்டுள்ளது"
+                        : "✓ Fingerprint lock is enabled"}
+                    </p>
+                  )}
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );

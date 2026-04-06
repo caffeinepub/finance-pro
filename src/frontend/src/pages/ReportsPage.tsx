@@ -138,6 +138,7 @@ export default function ReportsPage() {
   const actualCashNum = Number(actualCash) || 0;
   const actualBankNum = Number(actualBank) || 0;
   const actualAmountNum = actualCashNum + actualBankNum;
+  const amountDiff = actualAmountNum - reminder; // positive = high, negative = shortage
   const amountStatus =
     actualCash === "" && actualBank === ""
       ? null
@@ -496,20 +497,38 @@ export default function ReportsPage() {
             )}
             {amountStatus === "shortage" && (
               <div
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-red-50 border border-red-300 text-red-700"
+                className="flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-red-50 border border-red-300 text-red-700"
                 data-ocid="reports.shortage_warning"
               >
-                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                {t.shortageWarning}
+                <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold">
+                    {language === "ta" ? "குறைவு (Shortage)" : "Shortage"}
+                  </div>
+                  <div className="text-xs mt-0.5">
+                    {language === "ta"
+                      ? `உண்மையான தொகை மீதி இருப்பை விட ${formatINR(Math.abs(amountDiff))} குறைவாக உள்ளது`
+                      : `Actual amount is ${formatINR(Math.abs(amountDiff))} less than Reminder`}
+                  </div>
+                </div>
               </div>
             )}
             {amountStatus === "high" && (
               <div
-                className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-amber-50 border border-amber-300 text-amber-700"
+                className="flex items-start gap-2 rounded-lg px-3 py-2 text-sm font-medium bg-amber-50 border border-amber-300 text-amber-700"
                 data-ocid="reports.high_warning"
               >
-                <AlertTriangle className="h-4 w-4 flex-shrink-0" />
-                {t.highWarning}
+                <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold">
+                    {language === "ta" ? "அதிகம் (High)" : "High"}
+                  </div>
+                  <div className="text-xs mt-0.5">
+                    {language === "ta"
+                      ? `உண்மையான தொகை மீதி இருப்பை விட ${formatINR(Math.abs(amountDiff))} அதிகமாக உள்ளது`
+                      : `Actual amount is ${formatINR(Math.abs(amountDiff))} more than Reminder`}
+                  </div>
+                </div>
               </div>
             )}
             {amountStatus === "ok" && (
@@ -623,94 +642,97 @@ export default function ReportsPage() {
               {t.noSavedReports}
             </div>
           ) : (
-            visibleSavedReports.map((r, idx) => (
-              <Card
-                key={r.id}
-                className="cursor-pointer hover:shadow-md transition-shadow"
-                data-ocid={`reports.saved_reports.item.${idx + 1}`}
-              >
-                <CardHeader className="p-3 pb-2">
-                  <div className="flex items-center justify-between">
-                    <button
-                      type="button"
-                      className="text-left flex-1"
-                      onClick={() => setViewReport(r)}
-                    >
-                      <CardTitle className="text-sm font-semibold flex items-center gap-2">
-                        {formatDate(r.reportDate)} — {r.lineName}
-                        {(r.amountStatus === "shortage" ||
-                          r.amountStatus === "high") && (
+            visibleSavedReports.map((r, idx) => {
+              const savedDiff = (r.actualAmount ?? 0) - r.reminder;
+              return (
+                <Card
+                  key={r.id}
+                  className="cursor-pointer hover:shadow-md transition-shadow"
+                  data-ocid={`reports.saved_reports.item.${idx + 1}`}
+                >
+                  <CardHeader className="p-3 pb-2">
+                    <div className="flex items-center justify-between">
+                      <button
+                        type="button"
+                        className="text-left flex-1"
+                        onClick={() => setViewReport(r)}
+                      >
+                        <CardTitle className="text-sm font-semibold flex items-center gap-2">
+                          {formatDate(r.reportDate)} — {r.lineName}
+                          {(r.amountStatus === "shortage" ||
+                            r.amountStatus === "high") && (
+                            <span
+                              className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
+                                r.amountStatus === "shortage"
+                                  ? "bg-red-100 text-red-700"
+                                  : "bg-amber-100 text-amber-700"
+                              }`}
+                            >
+                              <AlertTriangle className="h-2.5 w-2.5" />
+                              {r.amountStatus === "shortage"
+                                ? `Shortage ${formatINR(Math.abs(savedDiff))}`
+                                : `High ${formatINR(Math.abs(savedDiff))}`}
+                            </span>
+                          )}
+                        </CardTitle>
+                      </button>
+                      <div className="flex items-center gap-1">
+                        {!isAgent && (
+                          <button
+                            type="button"
+                            className="text-destructive p-1"
+                            data-ocid={`reports.saved_reports.delete_button.${idx + 1}`}
+                            onClick={() => deleteSavedReport(r.id)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <p className="text-xs text-muted-foreground">
+                      {new Date(r.savedAt).toLocaleString()} · {r.savedBy}
+                    </p>
+                  </CardHeader>
+                  <button
+                    type="button"
+                    className="w-full text-left"
+                    onClick={() => setViewReport(r)}
+                  >
+                    <CardContent className="p-3 pt-0">
+                      <div className="grid grid-cols-3 gap-2 text-xs">
+                        <div>
+                          <span className="text-muted-foreground">
+                            {t.collection}:{" "}
+                          </span>
+                          <span className="font-medium">
+                            {formatINR(r.collection)}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground">
+                            {t.lending}:{" "}
+                          </span>
+                          <span className="font-medium">
+                            {formatINR(r.lending)}
+                          </span>
+                        </div>
+                        <div>
                           <span
-                            className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                              r.amountStatus === "shortage"
-                                ? "bg-red-100 text-red-700"
-                                : "bg-amber-100 text-amber-700"
+                            className={`font-semibold ${
+                              r.reminder >= 0
+                                ? "text-emerald-600"
+                                : "text-destructive"
                             }`}
                           >
-                            <AlertTriangle className="h-2.5 w-2.5" />
-                            {r.amountStatus === "shortage"
-                              ? "Shortage"
-                              : "High"}
+                            {t.reminder}: {formatINR(r.reminder)}
                           </span>
-                        )}
-                      </CardTitle>
-                    </button>
-                    <div className="flex items-center gap-1">
-                      {!isAgent && (
-                        <button
-                          type="button"
-                          className="text-destructive p-1"
-                          data-ocid={`reports.saved_reports.delete_button.${idx + 1}`}
-                          onClick={() => deleteSavedReport(r.id)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(r.savedAt).toLocaleString()} · {r.savedBy}
-                  </p>
-                </CardHeader>
-                <button
-                  type="button"
-                  className="w-full text-left"
-                  onClick={() => setViewReport(r)}
-                >
-                  <CardContent className="p-3 pt-0">
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div>
-                        <span className="text-muted-foreground">
-                          {t.collection}:{" "}
-                        </span>
-                        <span className="font-medium">
-                          {formatINR(r.collection)}
-                        </span>
+                        </div>
                       </div>
-                      <div>
-                        <span className="text-muted-foreground">
-                          {t.lending}:{" "}
-                        </span>
-                        <span className="font-medium">
-                          {formatINR(r.lending)}
-                        </span>
-                      </div>
-                      <div>
-                        <span
-                          className={`font-semibold ${
-                            r.reminder >= 0
-                              ? "text-emerald-600"
-                              : "text-destructive"
-                          }`}
-                        >
-                          {t.reminder}: {formatINR(r.reminder)}
-                        </span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </button>
-              </Card>
-            ))
+                    </CardContent>
+                  </button>
+                </Card>
+              );
+            })
           )}
         </TabsContent>
       </Tabs>
@@ -801,87 +823,105 @@ export default function ReportsPage() {
 
               {/* Actual Amount section in modal */}
               {viewReport.actualAmount !== undefined &&
-                viewReport.actualAmount > 0 && (
-                  <div className="space-y-2">
-                    <div
-                      className={`rounded-xl p-3 border ${
-                        viewReport.amountStatus === "shortage"
-                          ? "bg-red-50 border-red-200"
-                          : viewReport.amountStatus === "high"
-                            ? "bg-amber-50 border-amber-200"
-                            : "bg-emerald-50 border-emerald-200"
-                      }`}
-                    >
-                      {/* Total Actual Amount */}
-                      <div className="flex justify-between items-center">
-                        <p className="text-xs text-muted-foreground">
-                          {t.actualAmount}
-                        </p>
-                        <p
-                          className={`text-lg font-bold ${
-                            viewReport.amountStatus === "shortage"
-                              ? "text-red-700"
-                              : viewReport.amountStatus === "high"
-                                ? "text-amber-700"
-                                : "text-emerald-600"
-                          }`}
-                        >
-                          {formatINR(viewReport.actualAmount)}
-                        </p>
-                      </div>
-                      {/* Cash / Bank breakdown */}
-                      {(viewReport.actualCash !== undefined ||
-                        viewReport.actualBank !== undefined) && (
-                        <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-current/10">
-                          <div className="text-center">
-                            <p className="text-xs text-muted-foreground">
-                              {t.actualCash}
-                            </p>
-                            <p className="text-sm font-semibold">
-                              {formatINR(viewReport.actualCash ?? 0)}
-                            </p>
-                          </div>
-                          <div className="text-center">
-                            <p className="text-xs text-muted-foreground">
-                              {t.actualBank}
-                            </p>
-                            <p className="text-sm font-semibold">
-                              {formatINR(viewReport.actualBank ?? 0)}
-                            </p>
-                          </div>
-                        </div>
-                      )}
-                      {(viewReport.amountStatus === "shortage" ||
-                        viewReport.amountStatus === "high") && (
-                        <div className="flex items-center gap-1.5 mt-1.5">
-                          <AlertTriangle
-                            className={`h-3.5 w-3.5 ${
-                              viewReport.amountStatus === "shortage"
-                                ? "text-red-600"
-                                : "text-amber-600"
-                            }`}
-                          />
+                viewReport.actualAmount > 0 &&
+                (() => {
+                  const modalDiff =
+                    (viewReport.actualAmount ?? 0) - viewReport.reminder;
+                  return (
+                    <div className="space-y-2">
+                      <div
+                        className={`rounded-xl p-3 border ${
+                          viewReport.amountStatus === "shortage"
+                            ? "bg-red-50 border-red-200"
+                            : viewReport.amountStatus === "high"
+                              ? "bg-amber-50 border-amber-200"
+                              : "bg-emerald-50 border-emerald-200"
+                        }`}
+                      >
+                        {/* Total Actual Amount */}
+                        <div className="flex justify-between items-center">
+                          <p className="text-xs text-muted-foreground">
+                            {t.actualAmount}
+                          </p>
                           <p
-                            className={`text-xs font-medium ${
+                            className={`text-lg font-bold ${
                               viewReport.amountStatus === "shortage"
                                 ? "text-red-700"
-                                : "text-amber-700"
+                                : viewReport.amountStatus === "high"
+                                  ? "text-amber-700"
+                                  : "text-emerald-600"
                             }`}
                           >
-                            {viewReport.amountStatus === "shortage"
-                              ? t.shortageWarning
-                              : t.highWarning}
+                            {formatINR(viewReport.actualAmount)}
                           </p>
                         </div>
-                      )}
-                      {viewReport.amountStatus === "ok" && (
-                        <p className="text-xs text-emerald-600 mt-1">
-                          {t.amountMatchesReminder}
-                        </p>
-                      )}
+                        {/* Cash / Bank breakdown */}
+                        {(viewReport.actualCash !== undefined ||
+                          viewReport.actualBank !== undefined) && (
+                          <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t border-current/10">
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground">
+                                {t.actualCash}
+                              </p>
+                              <p className="text-sm font-semibold">
+                                {formatINR(viewReport.actualCash ?? 0)}
+                              </p>
+                            </div>
+                            <div className="text-center">
+                              <p className="text-xs text-muted-foreground">
+                                {t.actualBank}
+                              </p>
+                              <p className="text-sm font-semibold">
+                                {formatINR(viewReport.actualBank ?? 0)}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {(viewReport.amountStatus === "shortage" ||
+                          viewReport.amountStatus === "high") && (
+                          <div className="flex items-start gap-1.5 mt-2 pt-2 border-t border-current/10">
+                            <AlertTriangle
+                              className={`h-3.5 w-3.5 flex-shrink-0 mt-0.5 ${
+                                viewReport.amountStatus === "shortage"
+                                  ? "text-red-600"
+                                  : "text-amber-600"
+                              }`}
+                            />
+                            <div>
+                              <p
+                                className={`text-xs font-semibold ${
+                                  viewReport.amountStatus === "shortage"
+                                    ? "text-red-700"
+                                    : "text-amber-700"
+                                }`}
+                              >
+                                {viewReport.amountStatus === "shortage"
+                                  ? "Shortage"
+                                  : "High"}
+                              </p>
+                              <p
+                                className={`text-xs ${
+                                  viewReport.amountStatus === "shortage"
+                                    ? "text-red-600"
+                                    : "text-amber-600"
+                                }`}
+                              >
+                                {viewReport.amountStatus === "shortage"
+                                  ? `${formatINR(Math.abs(modalDiff))} less than Reminder`
+                                  : `${formatINR(Math.abs(modalDiff))} more than Reminder`}
+                              </p>
+                            </div>
+                          </div>
+                        )}
+                        {viewReport.amountStatus === "ok" && (
+                          <p className="text-xs text-emerald-600 mt-1">
+                            {t.amountMatchesReminder}
+                          </p>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                )}
+                  );
+                })()}
 
               <p className="text-xs text-center text-muted-foreground">
                 Saved by {viewReport.savedBy} ·{" "}

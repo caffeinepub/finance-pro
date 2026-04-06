@@ -145,7 +145,19 @@ export async function loadFromCloud(): Promise<{
 }
 
 // Saved Reports
+// We encode actualCash, actualBank, amountStatus into dynLeftJson as a special
+// metadata wrapper: { "fields": [...], "meta": { actualCash, actualBank, amountStatus } }
+// This avoids any backend schema changes while preserving all actual amount data.
 export function savedReportToCloud(r: SavedReport): CloudSavedReport {
+  const dynLeftWrapped = JSON.stringify({
+    fields: r.dynLeft,
+    meta: {
+      actualCash: r.actualCash ?? 0,
+      actualBank: r.actualBank ?? 0,
+      actualAmount: r.actualAmount ?? 0,
+      amountStatus: r.amountStatus ?? "ok",
+    },
+  });
   return {
     id: r.id,
     reportDate: r.reportDate,
@@ -155,7 +167,7 @@ export function savedReportToCloud(r: SavedReport): CloudSavedReport {
     loanFee: r.loanFee,
     lending: r.lending,
     expense: r.expense,
-    dynLeftJson: JSON.stringify(r.dynLeft),
+    dynLeftJson: dynLeftWrapped,
     dynRightJson: JSON.stringify(r.dynRight),
     leftTotal: r.leftTotal,
     rightTotal: r.rightTotal,
@@ -168,16 +180,49 @@ export function savedReportToCloud(r: SavedReport): CloudSavedReport {
 export function cloudToSavedReport(c: CloudSavedReport): SavedReport {
   let dynLeft: SavedReportField[] = [];
   let dynRight: SavedReportField[] = [];
+  let actualCash: number | undefined;
+  let actualBank: number | undefined;
+  let actualAmount: number | undefined;
+  let amountStatus: "shortage" | "high" | "ok" | undefined;
+
   try {
-    dynLeft = JSON.parse(c.dynLeftJson);
+    const parsed = JSON.parse(c.dynLeftJson);
+    // Detect wrapped format: { fields: [...], meta: {...} }
+    if (parsed && typeof parsed === "object" && Array.isArray(parsed.fields)) {
+      dynLeft = parsed.fields;
+      if (parsed.meta) {
+        actualCash =
+          typeof parsed.meta.actualCash === "number"
+            ? parsed.meta.actualCash
+            : undefined;
+        actualBank =
+          typeof parsed.meta.actualBank === "number"
+            ? parsed.meta.actualBank
+            : undefined;
+        actualAmount =
+          typeof parsed.meta.actualAmount === "number"
+            ? parsed.meta.actualAmount
+            : undefined;
+        amountStatus = parsed.meta.amountStatus as
+          | "shortage"
+          | "high"
+          | "ok"
+          | undefined;
+      }
+    } else if (Array.isArray(parsed)) {
+      // Legacy format: plain array
+      dynLeft = parsed;
+    }
   } catch {
     dynLeft = [];
   }
+
   try {
     dynRight = JSON.parse(c.dynRightJson);
   } catch {
     dynRight = [];
   }
+
   return {
     id: c.id,
     reportDate: c.reportDate,
@@ -194,6 +239,10 @@ export function cloudToSavedReport(c: CloudSavedReport): SavedReport {
     reminder: c.reminder,
     savedAt: c.savedAt,
     savedBy: c.savedBy,
+    actualCash,
+    actualBank,
+    actualAmount,
+    amountStatus,
   };
 }
 
