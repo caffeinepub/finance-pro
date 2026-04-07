@@ -174,6 +174,9 @@ export interface backendInterface {
     setEMIPaymentMetaBulk(entries: Array<[string, { paymentMethod: string; cashAmount: number; transferAmount: number }]>): Promise<void>;
     getEMIPaymentMeta(): Promise<Array<[string, { paymentMethod: string; cashAmount: number; transferAmount: number }]>>;
     deleteEMIPaymentMeta(emiId: string): Promise<void>;
+    // Line locks with auto-unlock dates — stored as JSON text on the backend
+    getLineLocks(): Promise<string>;
+    setLineLocks(json: string): Promise<void>;
 }
 import type { UserRole as _UserRole, AgentAccount as _AgentAccount } from "./declarations/backend.did.d.ts";
 export class Backend implements backendInterface {
@@ -567,6 +570,34 @@ export class Backend implements backendInterface {
             }
         } else {
             const result = await this.actor.deleteEMIPaymentMeta(arg0);
+            return result;
+        }
+    }
+    async getLineLocks(): Promise<string> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.getLineLocks();
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.getLineLocks();
+            return result;
+        }
+    }
+    async setLineLocks(arg0: string): Promise<void> {
+        if (this.processError) {
+            try {
+                const result = await this.actor.setLineLocks(arg0);
+                return result;
+            } catch (e) {
+                this.processError(e);
+                throw new Error("unreachable");
+            }
+        } else {
+            const result = await this.actor.setLineLocks(arg0);
             return result;
         }
     }

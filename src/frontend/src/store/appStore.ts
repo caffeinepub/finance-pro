@@ -11,6 +11,7 @@ import {
   loadLineLocks,
   loadLockedLines,
   loadSavedReports,
+  saveAddedAtLocally,
   syncAllAgentsToCloud,
   syncCustomerToCloud,
   syncEMIMetaToCloud,
@@ -229,6 +230,10 @@ export const useAppStore = create<AppStore>()(
           addedAt: new Date().toISOString(),
           createdBy: get().currentUser?.id ?? "u1",
         };
+        // Save addedAt to local cache immediately — prevents timestamp loss on cloud sync failure
+        if (newCustomer.addedAt) {
+          saveAddedAtLocally(newCustomer.id, newCustomer.addedAt);
+        }
         set((s) => ({ customers: [...s.customers, newCustomer] }));
         fireAndForget(
           () => syncCustomerToCloud(newCustomer),
@@ -437,6 +442,7 @@ export const useAppStore = create<AppStore>()(
           agents: allUsers,
           savedReports: state.savedReports,
           lockedLines: state.lineLocksDetailed.map((e) => e.lineName),
+          lineLockEntries: state.lineLocksDetailed,
           emiPaymentMeta,
         });
 
@@ -699,6 +705,7 @@ export const useAppStore = create<AppStore>()(
           agents: allUsers,
           savedReports: state.savedReports,
           lockedLines: state.lineLocksDetailed.map((e) => e.lineName),
+          lineLockEntries: state.lineLocksDetailed,
           emiPaymentMeta,
         });
         setSyncStatus(success ? "synced" : "error");
@@ -715,6 +722,8 @@ export const useAppStore = create<AppStore>()(
         currentUser: state.currentUser,
         reportCustomFields: state.reportCustomFields,
         customerMedia: state.customerMedia,
+        // Persist lock state so it survives refreshes even if cloud call fails
+        lineLocksDetailed: state.lineLocksDetailed,
       }),
     },
   ),

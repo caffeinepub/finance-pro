@@ -99,4 +99,7 @@ export interface backendInterface {
     setEMIPaymentMetaBulk(entries: Array<[string, EMIPaymentMeta]>): Promise<undefined>;
     getEMIPaymentMeta(): Promise<Array<[string, EMIPaymentMeta]>>;
     deleteEMIPaymentMeta(emiId: string): Promise<undefined>;
+    // Line locks with auto-unlock dates — stored as JSON text on the backend
+    getLineLocks(): Promise<string>;
+    setLineLocks(json: string): Promise<void>;
 }

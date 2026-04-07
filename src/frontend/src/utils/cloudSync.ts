@@ -27,6 +27,32 @@ async function getActor(): Promise<backendInterface> {
   return actorCache;
 }
 
+// Local localStorage cache for addedAt timestamps — survives page refreshes
+const ADDEDAAT_CACHE_KEY = "finpro_addedAt_cache";
+
+function getLocalTimestampCache(): Record<string, string> {
+  try {
+    const raw = localStorage.getItem(ADDEDAAT_CACHE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function setLocalTimestampCache(cache: Record<string, string>): void {
+  try {
+    localStorage.setItem(ADDEDAAT_CACHE_KEY, JSON.stringify(cache));
+  } catch {
+    // ignore storage errors
+  }
+}
+
+export function saveAddedAtLocally(customerId: string, addedAt: string): void {
+  const cache = getLocalTimestampCache();
+  cache[customerId] = addedAt;
+  setLocalTimestampCache(cache);
+}
+
 export async function syncCustomerToCloud(
   customer: StoreCustomer,
 ): Promise<void> {
@@ -35,13 +61,13 @@ export async function syncCustomerToCloud(
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     const { addedAt, ...cloudCustomer } = customer;
     await actor.addOrUpdateCustomer(cloudCustomer as Customer);
-    // Persist addedAt timestamp separately
+    // Persist addedAt timestamp using local cache (no read-modify-write needed)
     if (addedAt) {
-      const existing = await actor.getCustomerTimestamps();
-      const updated: Array<[string, string]> = [
-        ...existing.filter(([id]) => id !== customer.id),
-        [customer.id, addedAt],
-      ];
+      // Save locally first so it is never lost
+      saveAddedAtLocally(customer.id, addedAt);
+      // Build updated timestamp list from local cache
+      const localCache = getLocalTimestampCache();
+      const updated: Array<[string, string]> = Object.entries(localCache);
       await actor.setCustomerTimestamps(updated);
     }
   } catch {
@@ -133,7 +159,15 @@ export async function loadFromCloud(): Promise<{
       actor.getCustomerTimestamps(),
     ]);
     // Build a lookup map: customerId -> addedAt ISO string
+    // Merge cloud timestamps with local cache — local cache wins (prevents loss on cloud failure)
     const tsMap = new Map<string, string>(timestampEntries);
+    const localCache = getLocalTimestampCache();
+    // Local cache supplements cloud: if cloud has it use cloud, otherwise use local
+    for (const [id, ts] of Object.entries(localCache)) {
+      if (!tsMap.has(id)) {
+        tsMap.set(id, ts);
+      }
+    }
     const customers: StoreCustomer[] = cloudCustomers.map((c) => ({
       ...c,
       loanType: c.loanType as StoreCustomer["loanType"],
@@ -331,6 +365,7 @@ export async function uploadAllLocalDataToCloud(params: {
   agents: AgentAccount[];
   savedReports: SavedReport[];
   lockedLines?: string[];
+  lineLockEntries?: LineLockEntry[];
   emiPaymentMeta?: Array<[string, EMIPaymentMeta]>;
 }): Promise<boolean> {
   // Always reset cache to force fresh actor — avoids stale/broken connection
@@ -365,6 +400,9 @@ export async function uploadAllLocalDataToCloud(params: {
       await actor.setCustomerTimestamps(timestampEntries);
       if (params.lockedLines !== undefined) {
         await actor.setLockedLines(params.lockedLines);
+      }
+      if (params.lineLockEntries !== undefined) {
+        await actor.setLineLocks(JSON.stringify(params.lineLockEntries));
       }
       if (
         params.emiPaymentMeta !== undefined &&
@@ -407,13 +445,10 @@ export async function syncLockedLinesToCloud(lines: string[]): Promise<void> {
 
 // Line Locks with auto-unlock dates — stored as JSON text in a separate backend field.
 // Returns null on error (to distinguish from empty array).
-// We cast the actor to any since getLineLocks/setLineLocks are new methods not
-// yet in the generated backendInterface type.
 export async function loadLineLocks(): Promise<LineLockEntry[] | null> {
   try {
     const actor = await getActor();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const json: string = await (actor as any).getLineLocks();
+    const json: string = await actor.getLineLocks();
     if (!json || json === "[]" || json.trim() === "") return [];
     return JSON.parse(json) as LineLockEntry[];
   } catch {
@@ -426,8 +461,7 @@ export async function syncLineLocksToCloud(
 ): Promise<void> {
   try {
     const actor = await getActor();
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    await (actor as any).setLineLocks(JSON.stringify(locks));
+    await actor.setLineLocks(JSON.stringify(locks));
   } catch {
     // best-effort
   }
